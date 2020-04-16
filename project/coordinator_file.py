@@ -22,9 +22,47 @@ def coordinator(n_workers,E):
     sub_f = Sub('Fs')
     sub_x = Sub('Xs')
     
+    # get increments from workers
+    def get_incr():    
+            try:
+                incr=sub_incr.get(timeout=15)
+                return incr
+            except TimeoutError:
+                print('Increment aknowlegment not received')
+                return -10
+
+    # get fi's from all workers
+    def get_fi(n_workers):  
+        fis=[]
+        try:
+            fi=sub_f.get()
+            fis.append(fi)
+            for i in range(n_workers-1):
+                fi=sub_f.get() 
+                fis.append(fi)
+            return fis
+        except:
+            print('Fi aknowlegment not received')
+            return -10
+
+    # get xi's from all workers
+    def get_xi(n_workers):  
+        drifts=[]
+        try:
+            xi=sub_x.get()
+            drifts.append(xi)
+            for i in range(n_workers-1):
+                xi=sub_x.get() 
+                drifts.append(xi)
+            return drifts
+        except:
+            print('Xi aknowlegment not received')
+            return -10
+
+
     #____________________________Start coordinator_________________________________
 	
-    while len(pub_init.subscribers)!=4: #if not all workers subscribe sleep
+    while len(pub_init.subscribers)!=n_workers: #if not all workers subscribe sleep
         time.sleep(0.01)
     
     counter=0
@@ -36,11 +74,13 @@ def coordinator(n_workers,E):
     sum_xi=0
     incr=0
     e_y=0.01
-
+    
     print("Coo started")
     if E is 0: #if E=0 we need to update E
-        pub_init.put(None) 
-        drifts=get_xi(k,sub_x) #get local drifts (Xi's)
+        pub_init.put(None)
+        print("have send e...") 
+        drifts=get_xi(k) #get local drifts (Xi's)
+        print("got xi's")
         sum_xi=add_x(drifts)
         E=E+sum_xi
         pub_init.put(E)
@@ -76,7 +116,7 @@ def coordinator(n_workers,E):
             print("START SUBROUND:",count_sub)
             
             pub_endsub.put(1) #let worker know that a new subround begins
-            incr=get_incr(sub_incr) #Get increments
+            incr=get_incr() #Get increments
 
             if type(incr)==str: # works as a flag to let coordinator know that chunks are out
                 print("Coo received notice of chunks ended...")
@@ -96,7 +136,7 @@ def coordinator(n_workers,E):
             break
     
         pub_endsub.put(0) #let workers know that subrounds ended 
-        fis=get_fi(k,sub_f) #get F(Xi)'s from workers
+        fis=get_fi(k) #get F(Xi)'s from workers
         
         y=add_f(fis)
         print("y",y)
@@ -105,7 +145,7 @@ def coordinator(n_workers,E):
 
     pub_endr.put(0) #let workers know that rounds ended 
     
-    drifts=get_xi(k,sub_x) #get local drifts (Xi's)
+    drifts=get_xi(k) #get local drifts (Xi's)
     sum_xi=add_x(drifts)
     E=E+sum_xi
         
@@ -115,46 +155,8 @@ def coordinator(n_workers,E):
 
 #----------------------------------------------------------------------------------------------
 # Useful functions
-# subscription , add , lenght
+# add , lenght
 #-----------------------------------------------------------------------------------------------
-
-
-# get increments from workers
-def get_incr(sub_incr):    
-        try:
-            incr=sub_incr.get(timeout=15)
-            return incr
-        except TimeoutError:
-            print('Increment aknowlegment not received')
-            return -10
-
-# get fi's from all workers
-def get_fi(n_workers,sub_f):  
-	fis=[]
-	try:
-		fi=sub_f.get()
-		fis.append(fi)
-		for i in range(n_workers-1):
-			fi=sub_f.get() 
-			fis.append(fi)
-		return fis
-	except:
-		print('Fi aknowlegment not received')
-		return -10
-
-# get xi's from all workers
-def get_xi(n_workers,sub_x):  
-	drifts=[]
-	try:
-		xi=sub_x.get()
-		drifts.append(xi)
-		for i in range(n_workers-1):
-			xi=sub_x.get() 
-			drifts.append(xi)
-		return drifts
-	except:
-		print('Xi aknowlegment not received')
-		return -10
 
 #get the longest list from an np.array to fix any size problems (filling zero's)
 def longest(l):

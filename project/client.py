@@ -4,6 +4,7 @@ def start_client(n):
     client = Client(cluster)
     print(client)
     c=cluster.scheduler.workers
+    w=[]
     for i in c.items():
         w.append(i[0])
     # worker1= c.items()[0][0]

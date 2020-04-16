@@ -2,6 +2,7 @@ from dask.distributed import Pub, Sub, TimeoutError
 from dask.distributed import get_worker,wait
 import numpy as np
 import time
+import math 
 
 from func import f , get_chunk
 
@@ -26,20 +27,59 @@ def worker_f(name,Si,clf):
     pub_f = Pub('Fs')
     pub_x = Pub('Xs')
     
+
+    # get initial E value from coordinator
+    def get_init():    
+        try:
+            init=sub_init.get(timeout=100)
+            return init
+        except TimeoutError:
+            print('Init aknowlegment not received')
+            return []
+
+    #get theta from cordinator   
+    def get_th():    
+        try:
+            th=sub_th.get(timeout=100)
+            return th
+        except TimeoutError:
+            print('Theta aknowlegment not received')
+            return -10
+
+    #get aknowlegment for continue or stop the rounds    
+    def get_endr():
+        try:
+            endr=sub_endr.get(timeout=100)
+            return endr
+        except TimeoutError:
+            print('EndofRound aknowlegment not received')
+            return -10
+
+    #get aknowlegment for continue or stop the subrounds
+    def get_endsub():
+        try:
+            endsub=sub_endsub.get(timeout=100)
+            return endsub
+        except TimeoutError:
+            print('EndofSubRound aknowlegment not received')
+            return -10
+
+
     #                       ____Start of worker____
-    start=False
+
+    
     th=0
     w_id= get_worker().name #get worker id
-    f_name="sample"+str(w_id)+".txt" # concat sample with the w_id to get file name
     flag=True 
     E=[]
     Xi=[]
     
     count_chunks=1
+    print("worker",w_id,"started...")
     while flag==True: #while this flag stays true there are chunks
         
-        E=get_init(sub_init) # get E from coordinator
-
+        E=get_init() # get E from coordinator
+        print(w_id ,"Got E",E)
         if E is None: #if E=0 compute Xi and return Xi to update E
             X,y=get_chunk(count_chunks) #get_newSi(count_chunks,f_name)
             if type(X)==str and type(y)==str:
@@ -50,22 +90,22 @@ def worker_f(name,Si,clf):
             Si = clf.coef_[0]
             Xi=Si
             pub_x.put(Xi)
-            E=get_init(sub_init)
+            E=get_init()
 
         #begin of round...
 
-        while get_endr(sub_endr)==1: 
+        while get_endr()==1: 
             ci=0
             Xi=[0]
 
-            th=get_th(sub_th) #get theta
+            th=get_th() #get theta
 
             if th==-10:
                 break
 
             #begin of subround...
             
-            while get_endsub(sub_endsub)==1:
+            while get_endsub()==1:
 
                 count_chunks=count_chunks+1
 
@@ -111,44 +151,7 @@ def worker_f(name,Si,clf):
 
 #----------------------------------------------------------------------------------------------
 # Useful functions
-# subscription , add , lenght
-#-----------------------------------------------------------------------------------------------
-
-# get initial E value from coordinator
-def get_init(sub_init):    
-    try:
-        init=sub_init.get(timeout=100)
-        return init
-    except TimeoutError:
-        print('Init aknowlegment not received')
-        return []
-
-#get theta from cordinator   
-def get_th(sub_th):    
-    try:
-        th=sub_th.get(timeout=100)
-        return th
-    except TimeoutError:
-        print('Theta aknowlegment not received')
-        return -10
-
-#get aknowlegment for continue or stop the rounds    
-def get_endr(sub_endr):
-    try:
-        endr=sub_endr.get(timeout=100)
-        return endr
-    except TimeoutError:
-        print('EndofRound aknowlegment not received')
-        return -10
-
-#get aknowlegment for continue or stop the subrounds
-def get_endsub(sub_endsub):
-    try:
-        endsub=sub_endsub.get(timeout=100)
-        return endsub
-    except TimeoutError:
-        print('EndofSubRound aknowlegment not received')
-        return -10
+#----------------------------------------------------------------------------------------------
 
 #make 2 np.array same size    
 def make_same(x1,x2):
