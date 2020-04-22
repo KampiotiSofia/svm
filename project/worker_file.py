@@ -71,33 +71,30 @@ def worker_f(name,Si,clf):
     th=0
     w_id= get_worker().name #get worker id
     flag=True 
-    E=[]
+    E=[[0],0]
+    S_prev=[0,0]
     Xi=[]
     
     count_chunks=1
     print("worker",w_id,"started...")
     while flag==True: #while this flag stays true there are chunks
-        
         E=get_init() # get E from coordinator
-        print(w_id ,"Got E",E)
-        if E is None: #if E=0 compute Xi and return Xi to update E
+        if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
             X,y=get_chunk(count_chunks) #get_newSi(count_chunks,f_name)
             if type(X)==str and type(y)==str:
                 flag=False
                 print("NO Chunks,hey")
                 break
             clf.partial_fit(X,y,np.unique(([0,1])))
-            Si = clf.coef_[0]
-            Xi=Si
+            Si = [clf.coef_[0],clf.intercept_[0]]
+            Xi=[clf.coef_[0],clf.intercept_[0]]
             pub_x.put(Xi)
-            E=get_init()
-
+            E=get_init() # get E from coordinator
         #begin of round...
 
         while get_endr()==1: 
             ci=0
-            Xi=[0]
-
+            Xi=[[0],0]
             th=get_th() #get theta
 
             if th==-10:
@@ -106,7 +103,6 @@ def worker_f(name,Si,clf):
             #begin of subround...
             
             while get_endsub()==1:
-
                 count_chunks=count_chunks+1
 
                 zi=f(Xi,E)
@@ -116,29 +112,32 @@ def worker_f(name,Si,clf):
                     print("NO Chunks")
                     pub_incr.put("no")
                 else:
-                
-                    clf.partial_fit(X,y,np.unique([0,1]))
-                    new=clf.coef_[0]
 
-                    Si,new=make_same(Si,new) #read from the file
-                    S_prev=Si 
-                    Si=np.add(Si,new)
-                    Xi=Si-S_prev
-                    print(w_id,"Xi",Xi)
+                    S_prev[0]=list(Si[0])
+                    S_prev[1]=Si[1]
+                    clf.partial_fit(X,y,np.unique([0,1]))
+                    coef=clf.coef_[0]
+                    interc=clf.intercept_[0]
+                    Si[0]=coef
+                    Si[1]=interc
+                    print(w_id,"Si",Si,"Si_prev",S_prev)
+                    Xi=[Si[0]-S_prev[0],Si[1]-S_prev[1]]
+                    
+                    # print(w_id,"Xi",Xi)
                     c_th=0 
 
                     if th!=0: #avoid division with 0 if th=0 c_th=0
                         c_th=(f(Xi,E)-zi)/th
-                    print(w_id,"c_th",c_th)
+                    # print(w_id,"c_th",c_th)
                     ci_new=max(ci,math.floor(c_th))
-                    print(w_id,"ci",ci,"new ci",ci_new)
+                    # print(w_id,"ci",ci,"new ci",ci_new)
                     if ci!=ci_new: #if we detect a difference send it to the coordinator
                         ci=ci_new
                         pub_incr.put(ci)
                         print(w_id,"Sended...",ci)
 
             pub_f.put(f(Xi,E)) 
-            
+            print(w_id,"END OF ROUND")
             #end of round...
 
         time.sleep(4)

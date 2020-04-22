@@ -76,25 +76,25 @@ def coordinator(n_workers,E):
     e_y=0.01
     
     print("Coo started")
-    if E is 0: #if E=0 we need to update E
-        pub_init.put(None)
+    if np.array_equal(E[0],np.asarray([0])): #if E=0 we need to update E
+        pub_init.put(([0],0))
         print("have send e...") 
         drifts=get_xi(k) #get local drifts (Xi's)
         print("got xi's")
         sum_xi=add_x(drifts)
-        E=E+sum_xi
+        E=[E[0]+sum_xi[0],E[1]+sum_xi[1]]
         pub_init.put(E)
     else:
         pub_init.put(E)
     
-    print("E",E)
-    y=k*f([0],E)
+    # print("E",E)
+    y=k*f([[0],0],E)
     subs=[]
     flag=True #use this flag to finish future if chunks are out
 
 	#start of the round...
 
-    while y<=e_y*k*f([0],E): 
+    while y<=e_y*k*f([[0],0],E): 
         
         counter=counter+1
         print("START ROUND:",counter)
@@ -142,12 +142,11 @@ def coordinator(n_workers,E):
         print("y",y)
 
 	#rounds ended...
-
     pub_endr.put(0) #let workers know that rounds ended 
     
     drifts=get_xi(k) #get local drifts (Xi's)
     sum_xi=add_x(drifts)
-    E=E+sum_xi
+    E=[E[0]+sum_xi[0],E[1]+sum_xi[1]]
         
     print("Coo ended...")
     return E,counter,count_sub
@@ -166,9 +165,8 @@ def longest(l):
 			max_len=len(i)
 	return max_len
     
-#add all xi's received from workers 
-def add_x(array):
-	
+#add all coef's received from workers 
+def add_coef(array):
 	length=longest(array)
 	sum_x=[0]*length
 	for x in array:
@@ -177,6 +175,19 @@ def add_x(array):
 			x=np.append(x,0)
 		sum_x=np.add(sum_x,x)
 	return sum_x
+
+#add all xi's received from workers
+def add_x(l):
+    
+    coef=[]
+    for pair in l:
+        print("Pair",pair)
+        coef.append(pair[0])
+    print(coef)
+    sum_coef=add_coef(coef)
+    print(sum_coef)
+    sum_interc=sum([pair[1] for pair in l])
+    return (sum_coef,sum_interc)
 
 #add all fi's received from workers     
 def add_f(array):
