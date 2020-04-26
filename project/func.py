@@ -13,7 +13,6 @@ def f(x,E):
                 E[0]=np.append(E[0],0)
                 E[1]=E[1]
     if LA.norm(E[0])!=0:
-        print("E",E[0])
         t1= -0.01*LA.norm(E[0])-np.dot(x[0],(E[0]/LA.norm(E[0])))
     else:
         t1=0

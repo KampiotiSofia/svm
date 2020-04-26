@@ -79,11 +79,15 @@ def worker_f(name,Si,clf):
     print("worker",w_id,"started...")
     while flag==True: #while this flag stays true there are chunks
         E=get_init() # get E from coordinator
+        if len(E)==0:
+            print("Error")
+            break
         if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
+            
             X,y=get_chunk(count_chunks) #get_newSi(count_chunks,f_name)
             if type(X)==str and type(y)==str:
                 flag=False
-                print("NO Chunks,hey")
+                print("NO Chunks...")
                 break
             clf.partial_fit(X,y,np.unique(([0,1])))
             Si = [clf.coef_[0],clf.intercept_[0]]
@@ -101,7 +105,7 @@ def worker_f(name,Si,clf):
                 break
 
             #begin of subround...
-            
+            print("worker",w_id,"in round")
             while get_endsub()==1:
                 count_chunks=count_chunks+1
 
@@ -109,7 +113,7 @@ def worker_f(name,Si,clf):
                 X,y=get_chunk(count_chunks) #get_newSi(count_chunks,f_name)
                 if type(X)==str and type(y)==str:
                     flag=False
-                    print("NO Chunks")
+                    print("NO Chunks...")
                     pub_incr.put("no")
                 else:
 
@@ -123,7 +127,7 @@ def worker_f(name,Si,clf):
                     print(w_id,"Si",Si,"Si_prev",S_prev)
                     Xi=[Si[0]-S_prev[0],Si[1]-S_prev[1]]
                     
-                    # print(w_id,"Xi",Xi)
+                    print(w_id,"Xi",Xi)
                     c_th=0 
 
                     if th!=0: #avoid division with 0 if th=0 c_th=0
@@ -135,7 +139,7 @@ def worker_f(name,Si,clf):
                         ci=ci_new
                         pub_incr.put(ci)
                         print(w_id,"Sended...",ci)
-
+            print("before put")
             pub_f.put(f(Xi,E)) 
             print(w_id,"END OF ROUND")
             #end of round...
