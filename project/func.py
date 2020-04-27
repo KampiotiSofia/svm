@@ -25,7 +25,7 @@ def get_chunk(n):
     X=np.load("X.npy")
     y=np.load("y.npy")
     n=n-1
-    n_parts=200
+    n_parts=len(X)/10
     split= int(len(X)/n_parts)
     start=split*n
     end=start+split

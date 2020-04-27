@@ -79,6 +79,7 @@ def worker_f(name,Si,clf):
     print("worker",w_id,"started...")
     while flag==True: #while this flag stays true there are chunks
         E=get_init() # get E from coordinator
+        print(w_id,"Received E")
         if len(E)==0:
             print("Error")
             break
@@ -93,20 +94,24 @@ def worker_f(name,Si,clf):
             Si = [clf.coef_[0],clf.intercept_[0]]
             Xi=[clf.coef_[0],clf.intercept_[0]]
             pub_x.put(Xi)
+            print(w_id,"Sended Xi")
             E=get_init() # get E from coordinator
+            print(w_id,"Received E after warmup...")
         #begin of round...
 
-        while get_endr()==1: 
+        while get_endr()==1:
+            print(w_id,"Received start of round") 
             ci=0
             Xi=[[0],0]
             th=get_th() #get theta
+            print(w_id,"Received theta")
 
             if th==-10:
                 break
 
             #begin of subround...
-            print("worker",w_id,"in round")
             while get_endsub()==1:
+                print(w_id,"Received start of subround")
                 count_chunks=count_chunks+1
 
                 zi=f(Xi,E)
@@ -124,10 +129,7 @@ def worker_f(name,Si,clf):
                     interc=clf.intercept_[0]
                     Si[0]=coef
                     Si[1]=interc
-                    print(w_id,"Si",Si,"Si_prev",S_prev)
                     Xi=[Si[0]-S_prev[0],Si[1]-S_prev[1]]
-                    
-                    print(w_id,"Xi",Xi)
                     c_th=0 
 
                     if th!=0: #avoid division with 0 if th=0 c_th=0
@@ -139,13 +141,14 @@ def worker_f(name,Si,clf):
                         ci=ci_new
                         pub_incr.put(ci)
                         print(w_id,"Sended...",ci)
-            print("before put")
-            pub_f.put(f(Xi,E)) 
+            pub_f.put(f(Xi,E))
+            print(w_id,"Sended Fi") 
             print(w_id,"END OF ROUND")
             #end of round...
 
         time.sleep(4)
-        pub_x.put(Xi) # send Xi    
+        pub_x.put(Xi) # send Xi
+        print(w_id,"Sended Xi")    
     #time.sleep(3)
     print(w_id,"Ended...")
     return Si
