@@ -153,21 +153,3 @@ def worker_f(name,Si,clf):
     print(w_id,"Ended...")
     return Si
 
-
-
-#----------------------------------------------------------------------------------------------
-# Useful functions
-#----------------------------------------------------------------------------------------------
-
-#make 2 np.array same size    
-def make_same(x1,x2):
-    if len(x1)!=len(x2):
-        dif=len(x2)-len(x1)
-        
-        for i in range(abs(dif)):
-            if dif>0:
-                x1=np.append(x1,10)
-            else:
-
-                x2=np.append(x2,0)
-    return x1,x2
