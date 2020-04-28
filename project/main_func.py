@@ -148,6 +148,8 @@ def fill_arrays(rounds,sub_rs,feature_array,result):
 def real_partial(parts):
     clf = linear_model.SGDClassifier(shuffle=False)
     count_chunks=0
+    E=[]
+    Acc=[]
     X_test=np.load("X_test.npy")
     y_test=np.load("y_test.npy")
     while True:
@@ -160,5 +162,7 @@ def real_partial(parts):
         clf.partial_fit(X,y,np.unique(([0,1])))
         y_pred = clf.predict(X_test)
         print("Coef:",clf.coef_[0])
+        E.append(clf.coef_[0])
+        Acc.append(metrics.accuracy_score(y_test, y_pred))
         sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
-    return
+    return E,Acc
