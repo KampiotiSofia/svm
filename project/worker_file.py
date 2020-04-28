@@ -18,7 +18,7 @@ a different file to update Si.
 """
 
 
-def worker_f(name,Si,clf):
+def worker_f(name,clf,parts,e):
     sub_init = Sub('Initialize')
     sub_th = Sub('Theta')
     sub_endr = Sub('EndRound')
@@ -72,10 +72,11 @@ def worker_f(name,Si,clf):
     w_id= get_worker().name #get worker id
     flag=True 
     E=[[0],0]
+    Si=[0,0]
     S_prev=[0,0]
     Xi=[]
     
-    count_chunks=1
+    count_chunks=0
     print("worker",w_id,"started...")
     while flag==True: #while this flag stays true there are chunks
         E=get_init() # get E from coordinator
@@ -84,8 +85,8 @@ def worker_f(name,Si,clf):
             print("Error")
             break
         if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
-            
-            X,y=get_chunk(count_chunks) #get_newSi(count_chunks,f_name)
+            count_chunks+=1
+            X,y=get_chunk(count_chunks,parts) #get_newSi(count_chunks,f_name)
             if type(X)==str and type(y)==str:
                 flag=False
                 print("NO Chunks...")
@@ -112,10 +113,10 @@ def worker_f(name,Si,clf):
             #begin of subround...
             while get_endsub()==1:
                 print(w_id,"Received start of subround")
-                count_chunks=count_chunks+1
+                count_chunks+=1
 
-                zi=f(Xi,E)
-                X,y=get_chunk(count_chunks) #get_newSi(count_chunks,f_name)
+                zi=f(Xi,E,e)
+                X,y=get_chunk(count_chunks,parts) #get_newSi(count_chunks,f_name)
                 if type(X)==str and type(y)==str:
                     flag=False
                     print("NO Chunks...")
@@ -133,7 +134,7 @@ def worker_f(name,Si,clf):
                     c_th=0 
 
                     if th!=0: #avoid division with 0 if th=0 c_th=0
-                        c_th=(f(Xi,E)-zi)/th
+                        c_th=(f(Xi,E,e)-zi)/th
                     # print(w_id,"c_th",c_th)
                     ci_new=max(ci,math.floor(c_th))
                     # print(w_id,"ci",ci,"new ci",ci_new)
@@ -141,15 +142,16 @@ def worker_f(name,Si,clf):
                         ci=ci_new
                         pub_incr.put(ci)
                         print(w_id,"Sended...",ci)
-            pub_f.put(f(Xi,E))
+            pub_f.put(f(Xi,E,e))
             print(w_id,"Sended Fi") 
             print(w_id,"END OF ROUND")
             #end of round...
 
-        time.sleep(4)
+        # time.sleep(4)
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")    
     #time.sleep(3)
     print(w_id,"Ended...")
+    print("Chunks",count_chunks)
     return Si
 

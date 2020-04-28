@@ -13,7 +13,7 @@ First send E if E=0,askes workers to compute local drifts in order to update E.
 This future ends every time that we get a new E. Starts again till workers have no chunks to read 
 """
 
-def coordinator(n_workers,E):
+def coordinator(n_workers,E,e):
     pub_init = Pub('Initialize')
     pub_th = Pub('Theta')
     pub_endr = Pub('EndRound')
@@ -97,13 +97,13 @@ def coordinator(n_workers,E):
         print("Coo Sended E")
     
     # print("E",E)
-    y=k*f([[0],0],E)
+    y=k*f([[0],0],E,e)
     subs=[]
     flag=True #use this flag to finish future if chunks are out
 
 	#start of the round...
 
-    while y<=e_y*k*f([[0],0],E): 
+    while y<=e_y*k*f([[0],0],E,e): 
         
         n_rounds+=1
         print("START ROUND:",n_rounds)
@@ -169,7 +169,7 @@ def coordinator(n_workers,E):
     E=[e1,e2]
         
     print("Coo ended...")
-    return E,n_rounds,n_subs,subs
+    return E,n_rounds,subs
 
 
 #----------------------------------------------------------------------------------------------
