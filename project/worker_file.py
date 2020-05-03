@@ -106,7 +106,9 @@ def worker_f(name,clf,parts,e):
             Xi=[[0],0]
             th=get_th() #get theta
             print(w_id,"Received theta")
-
+            S_prev[0]=list(Si[0])
+            S_prev[1]=Si[1]
+            print(w_id,"Si_prev",S_prev)
             if th==-10:
                 break
 
@@ -123,8 +125,6 @@ def worker_f(name,clf,parts,e):
                     pub_incr.put("no")
                 else:
 
-                    S_prev[0]=list(Si[0])
-                    S_prev[1]=Si[1]
                     clf.partial_fit(X,y,np.unique([0,1]))
                     coef=clf.coef_[0]
                     interc=clf.intercept_[0]

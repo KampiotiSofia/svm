@@ -11,24 +11,28 @@ from coordinator_file import coordinator
 from worker_file import worker_f
 from func import get_chunk
 
-def main(client,w,n_samples,n_features,parts,e):
+def main(client,w,new,dataset_params,batches,e):
    
     E=[]
     Acc=[]
     rounds=[]
     sub_rs=[]
     worker=[]
-    E_array=[[] for i in range(n_features)]
-    feature_array=[[] for i in range(n_features)]
+    E_array=[[] for i in range(dataset_params["n_features"])]
+    feature_array=[[] for i in range(dataset_params["n_features"])]
 
     #make a dataset and save training X and y ,give sample number and future number
-    X_test,y_test=create_dataset(n_samples,n_features)
+    if new=='yes':
+        create_dataset(dataset_params)
+    X_test=np.load("X_test.npy")
+    y_test=np.load("y_test.npy")
+
 
     clf = linear_model.SGDClassifier(shuffle=False)
     coo=client.submit(coordinator,len(w)-1,([0],0),e,workers=w[0])
 
     for i in range(len(w)-1):
-        worker.append(client.submit(worker_f,i,clf,parts,e,workers=w[i+1]))
+        worker.append(client.submit(worker_f,i,clf,batches,e,workers=w[i+1]))
 
 
     while True:
@@ -55,7 +59,6 @@ def main(client,w,n_samples,n_features,parts,e):
             print("Coordinator:",coo.status,"...\nWorkers:",status_l)
 
             if check_coo(coo)=="ok":
-                coo= client.submit(coordinator,len(w)-1,E,workers=w[0]) 
                 print("coo",result)
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
@@ -71,18 +74,22 @@ def main(client,w,n_samples,n_features,parts,e):
 
     return E_array,feature_array,Acc,rounds,sub_rs
 
-def create_dataset(s,f):
+def create_dataset(d):
     
-    X, y = make_classification(n_samples=s, n_features=f,n_classes=2)
-    X_train, X_test, y_train, y_test = train_test_split(X, y)
+    X, y = make_classification(n_samples=d["n_samples"], n_features=d["n_features"],n_informative=d["n_informative"],
+        n_redundant=d["n_redundant"], n_repeated=d["n_repeated"],n_classes=d["n_classes"],n_clusters_per_class=d["n_clusters_per_class"],
+        weights=d["weights"],flip_y=d["flip_y"],random_state=d["random_state"])
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=int(len(X)/3))
     try:
         np.save("X", X_train)
         np.save("y", y_train)
         np.save("X_test", X_test)
         np.save("y_test", y_test)
+        print("A new dataset has been created...")
     except:
         print("An exception occurred while trying to save the dataset...")
-    return X_test,y_test
+    return
 
 def pred(E,clf,X_test,y_test):
     clf.coef_=np.asarray([E[0]])
@@ -145,7 +152,7 @@ def fill_arrays(rounds,sub_rs,feature_array,result):
         feature_array[i].append(E[i])
     return rounds,sub_rs,feature_array
 
-def real_partial(parts):
+def real_partial(batches):
     clf = linear_model.SGDClassifier(shuffle=False)
     count_chunks=0
     E=[]
@@ -154,9 +161,8 @@ def real_partial(parts):
     y_test=np.load("y_test.npy")
     while True:
         count_chunks+=1
-        X,y=get_chunk(count_chunks,parts) #get_newSi(count_chunks,f_name)
+        X,y=get_chunk(count_chunks,batches) #get_newSi(count_chunks,f_name)
         if type(X)==str and type(y)==str:
-            flag=False
             print("NO Chunks...")
             break
         clf.partial_fit(X,y,np.unique(([0,1])))
