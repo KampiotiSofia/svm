@@ -96,7 +96,6 @@ def coordinator(n_workers,E,e):
         pub_init.put(E)
         print("Coo Sended E")
     
-    # print("E",E)
     y=k*f([[0],0],E,e)
     subs=[]
     flag=True #use this flag to finish future if chunks are out

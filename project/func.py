@@ -4,12 +4,14 @@ from numpy import linalg as LA
 #Φ(x)
 def f(x,E,e):
     x,E=same_len(x,E)
-    if LA.norm(E[0])!=0:
-        t1= -e*LA.norm(E[0])-np.dot(x[0],(E[0]/LA.norm(E[0])))
+    n1=np.append(E[0], E[1])
+    n2=np.append(x[0], x[1])
+    if LA.norm(n1)!=0:
+        t1= -e*LA.norm(n1)-np.dot(n2,(n1/LA.norm(n1)))
     else:
         t1=0
-    n_sum=np.add(x[0],E[0])
-    t2=LA.norm(n_sum) - (1+e)*LA.norm(E[0])
+    n_sum=np.add(n2,n1)
+    t2=LA.norm(n_sum) - (1+e)*LA.norm(n1)
     return max(t1,t2)
 
 #get chunks to fit

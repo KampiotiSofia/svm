@@ -106,9 +106,6 @@ def worker_f(name,clf,parts,e):
             Xi=[[0],0]
             th=get_th() #get theta
             print(w_id,"Received theta")
-            S_prev[0]=list(Si[0])
-            S_prev[1]=Si[1]
-            print(w_id,"Si_prev",S_prev)
             if th==-10:
                 break
 
@@ -135,22 +132,21 @@ def worker_f(name,clf,parts,e):
 
                     if th!=0: #avoid division with 0 if th=0 c_th=0
                         c_th=(f(Xi,E,e)-zi)/th
-                    # print(w_id,"c_th",c_th)
                     ci_new=max(ci,math.floor(c_th))
-                    # print(w_id,"ci",ci,"new ci",ci_new)
                     if ci!=ci_new: #if we detect a difference send it to the coordinator
                         ci=ci_new
                         pub_incr.put(ci)
                         print(w_id,"Sended...",ci)
             pub_f.put(f(Xi,E,e))
+            S_prev[0]=list(Si[0])
+            S_prev[1]=Si[1]
             print(w_id,"Sended Fi") 
-            print(w_id,"END OF ROUND")
-            #end of round...
+            print(w_id,"End of subround")
+            #end of subround...
 
-        # time.sleep(4)
+        # end of round
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")    
-    #time.sleep(3)
     print(w_id,"Ended...")
     print("Chunks",count_chunks)
     return Si
