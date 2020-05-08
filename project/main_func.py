@@ -12,7 +12,7 @@ from worker_file import worker_f
 from func import get_chunk
 
 def main(client,w,new,dataset_params,batches,e):
-   
+    print("Start with num of mini-batches:",batches,"and e:",e)
     E=[]
     Acc=[]
     rounds=[]
@@ -34,7 +34,7 @@ def main(client,w,new,dataset_params,batches,e):
     for i in range(len(w)-1):
         worker.append(client.submit(worker_f,i,clf,batches,e,workers=w[i+1]))
 
-
+    print("In progress...")
     while True:
         #check if anything unexpected happend to the workers
         time.sleep(1)
@@ -46,7 +46,7 @@ def main(client,w,new,dataset_params,batches,e):
                 E=result[0]
                 del coo
                 coo= client.submit(coordinator,len(w)-1,E,e,workers=w[0]) 
-                print("coo",result)
+                # print("coo",result)
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
                 Acc.append(acc)
@@ -59,7 +59,7 @@ def main(client,w,new,dataset_params,batches,e):
             print("Coordinator:",coo.status,"...\nWorkers:",status_l)
 
             if check_coo(coo)=="ok":
-                print("coo",result)
+                #print("coo",result)
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
                 Acc.append(acc)
@@ -96,7 +96,7 @@ def pred(E,clf,X_test,y_test):
     clf.intercept_=np.asarray(E[1])
     clf.classes_=np.asarray([0,1])
     y_pred = clf.predict(X_test)
-    sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
+    #sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
     acc=metrics.accuracy_score(y_test, y_pred)
     return clf,acc
 
