@@ -54,7 +54,7 @@ def main(client,w,new,dataset_params,batches,e):
                 rounds,sub_rs,feature_array=fill_arrays(rounds,sub_rs,feature_array,result)     
         elif c=="end":
             #no chunks workers ended 
-            print("\nEnd of chunks...")
+            print("End of chunks...")
             status_l=[w.status for w in worker]
             print("Coordinator:",coo.status,"...\nWorkers:",status_l)
 
@@ -65,7 +65,7 @@ def main(client,w,new,dataset_params,batches,e):
                 Acc.append(acc)
                 E_array.append(E[0])
                 rounds,sub_rs,feature_array=fill_arrays(rounds,sub_rs,feature_array,result)
-                print("Finished with no error...")
+                print("Finished with no error...\n\n")
             break 
         else:
             return 
@@ -172,5 +172,5 @@ def real_partial(batches):
         E.append(clf.coef_[0])
         Acc.append(metrics.accuracy_score(y_test, y_pred))
         #sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
-        print("Ended")
+    print("Ended")
     return E,Acc
