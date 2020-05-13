@@ -11,7 +11,7 @@ from coordinator_file import coordinator
 from worker_file import worker_f
 from func import get_chunk
 
-def main(client,w,new,dataset_params,batches,e):
+def main(client,w,new,dataset_params,batches,e,kind):
     print("Start with num of mini-batches:",batches,"and e:",e)
     E=[]
     Acc=[]
@@ -23,7 +23,21 @@ def main(client,w,new,dataset_params,batches,e):
 
     #make a dataset and save training X and y ,give sample number and future number
     if new=='yes':
-        create_dataset(dataset_params)
+        create_dataset(dataset_params,kind)
+    else:
+        if kind=="balanced":
+            print("Balanced len:",len(np.load("X_bal.npy")))
+            np.save("X", np.load("X_bal.npy"))
+            np.save("y", np.load("y_bal.npy"))
+            np.save("X_test", np.load("X_test_bal.npy"))
+            np.save("y_test", np.load("y_test_bal.npy"))
+        else:
+            print("Unbalanced len:",len(np.load("X_Unbal.npy")))
+            np.save("X", np.load("X_Unbal.npy"))
+            np.save("y", np.load("y_Unbal.npy"))
+            np.save("X_test", np.load("X_test_Unbal.npy"))
+            np.save("y_test", np.load("y_test_Unbal.npy"))
+
     X_test=np.load("X_test.npy")
     y_test=np.load("y_test.npy")
 
@@ -74,7 +88,7 @@ def main(client,w,new,dataset_params,batches,e):
 
     return E_array,feature_array,Acc,rounds,sub_rs
 
-def create_dataset(d):
+def create_dataset(d,kind):
     
     X, y = make_classification(n_samples=d["n_samples"], n_features=d["n_features"],n_informative=d["n_informative"],
         n_redundant=d["n_redundant"], n_repeated=d["n_repeated"],n_classes=d["n_classes"],n_clusters_per_class=d["n_clusters_per_class"],
@@ -89,6 +103,16 @@ def create_dataset(d):
         print("A new dataset has been created...")
     except:
         print("An exception occurred while trying to save the dataset...")
+    if kind=='balanced':
+        np.save("X_bal", X_train)
+        np.save("y_bal", y_train)
+        np.save("X_test_bal", X_test)
+        np.save("y_test_bal", y_test)
+    else:
+        np.save("X_Unbal", X_train)
+        np.save("y_Unbal", y_train)
+        np.save("X_test_Unbal", X_test)
+        np.save("y_test_Unbal", y_test)
     return
 
 def pred(E,clf,X_test,y_test):
