@@ -166,8 +166,6 @@ def coordinator(n_workers,E,e):
     e1=E[0]+(sum_xi[0]/n_workers)
     e2=E[1]+(sum_xi[1]/n_workers)
     E=[e1,e2]
-    print("E",E)
-        
     print("Coo ended...")
     return E,n_rounds,subs
 
