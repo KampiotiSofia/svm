@@ -68,7 +68,8 @@ def load_dataset(kind):
 def create_chunks(parts):
     X=np.load("np_arrays/X.npy")
     y=np.load("np_arrays/y.npy")
-    split= math.ceil(len(X)/parts)
+    split= int(len(X)/parts)
+    print("Size of minibatch: ",split)
     for i in range(parts):
         start=split*i
         end=start+split
@@ -150,7 +151,7 @@ def random_assign(n_workers,parts):
     y_names=["y_"+str(i) for i in n]
     X_assign=[[] for i in range(n_workers)]
     y_assign=[[] for i in range(n_workers)]
-    split= math.ceil(len(n)/n_workers)
+    split= int(len(n)/n_workers)
     print("Number of minibatch for each worker: ",split)
     for i in range(n_workers):
         start=split*i
@@ -159,7 +160,7 @@ def random_assign(n_workers,parts):
             end=len(X_names)
         X_assign[i]=X_names[start:end]
         y_assign[i]=y_names[start:end]
-
+    print("WHATTTTT",X_assign)
     np.save("np_arrays/X_assign", X_assign)
     np.save("np_arrays/y_assign", y_assign)
     return 
@@ -167,11 +168,10 @@ def random_assign(n_workers,parts):
 def get_chunk(name,n):
     X_assign=np.load("np_arrays/X_assign.npy")
     y_assign=np.load("np_arrays/y_assign.npy")
-    if n>len(X_assign[name]):
+    if n>=len(X_assign[name]):
         return "False", "False"
     X_name="np_arrays/minibatches/"+X_assign[name][n]+".npy"
     y_name="np_arrays/minibatches/"+y_assign[name][n]+".npy"
-    print("MMMMMMM",len(np.load(X_name)))
     return np.load(X_name), np.load(y_name)
 
 
