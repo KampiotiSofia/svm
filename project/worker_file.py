@@ -86,7 +86,6 @@ def worker_f(name,clf,parts,e):
             break
         if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
             
-            print("HEYYYYYY",name)
             X,y=get_chunk(name,count_chunks) #get_newSi(count_chunks,f_name)
             print(w_id,"LEN=",len(X),"n_chunks",count_chunks)
             count_chunks+=1

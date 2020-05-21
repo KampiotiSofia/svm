@@ -83,8 +83,8 @@ def real_partial(batches):
     count_chunks=0
     E=[]
     Acc=[]
-    X_test=np.load("X_test.npy")
-    y_test=np.load("y_test.npy")
+    X_test=np.load("np_arrays/X_test.npy")
+    y_test=np.load("np_arrays/y_test.npy")
     while True:
         count_chunks+=1
         X,y=get_chunk(count_chunks,batches) #get_newSi(count_chunks,f_name)
