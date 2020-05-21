@@ -30,55 +30,56 @@ def create_dataset(d,kind):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=int(len(X)/3))
     try:
-        np.save("X", X_train)
-        np.save("y", y_train)
-        np.save("X_test", X_test)
-        np.save("y_test", y_test)
+        np.save("np_arrays/X", X_train)
+        np.save("np_arrays/y", y_train)
+        np.save("np_arrays/X_test", X_test)
+        np.save("np_arrays/y_test", y_test)
         print("A new dataset has been created...")
     except:
         print("An exception occurred while trying to save the dataset...")
     if kind=='balanced':
-        np.save("X_bal", X_train)
-        np.save("y_bal", y_train)
-        np.save("X_test_bal", X_test)
-        np.save("y_test_bal", y_test)
+        np.save("np_arrays/X_bal", X_train)
+        np.save("np_arrays/y_bal", y_train)
+        np.save("np_arrays/X_test_bal", X_test)
+        np.save("np_arrays/y_test_bal", y_test)
     else:
-        np.save("X_Unbal", X_train)
-        np.save("y_Unbal", y_train)
-        np.save("X_test_Unbal", X_test)
-        np.save("y_test_Unbal", y_test)
+        np.save("np_arrays/X_Unbal", X_train)
+        np.save("np_arrays/y_Unbal", y_train)
+        np.save("np_arrays/X_test_Unbal", X_test)
+        np.save("np_arrays/y_test_Unbal", y_test)
     return
 
-def load_dataset(kind,parts):
+def load_dataset(kind):
     if kind=="balanced":
-            print("Balanced len:",len(np.load("X_bal.npy")))
-            np.save("X", np.load("X_bal.npy"))
-            np.save("y", np.load("y_bal.npy"))
-            np.save("X_test", np.load("X_test_bal.npy"))
-            np.save("y_test", np.load("y_test_bal.npy"))
+            print("Balanced len:",len(np.load("np_arrays/X_bal.npy")))
+            np.save("np_arrays/X", np.load("np_arrays/X_bal.npy"))
+            np.save("np_arrays/y", np.load("np_arrays/y_bal.npy"))
+            np.save("np_arrays/X_test", np.load("np_arrays/X_test_bal.npy"))
+            np.save("np_arrays/y_test", np.load("np_arrays/y_test_bal.npy"))
     else:
-        print("Unbalanced len:",len(np.load("X_Unbal.npy")))
-        np.save("X", np.load("X_Unbal.npy"))
-        np.save("y", np.load("y_Unbal.npy"))
-        np.save("X_test", np.load("X_test_Unbal.npy"))
-        np.save("y_test", np.load("y_test_Unbal.npy"))
+        print("Unbalanced len:",len(np.load("np_arrays/X_Unbal.npy")))
+        np.save("np_arrays/X", np.load("np_arrays/X_Unbal.npy"))
+        np.save("np_arrays/y", np.load("np_arrays/y_Unbal.npy"))
+        np.save("np_arrays/X_test", np.load("np_arrays/X_test_Unbal.npy"))
+        np.save("np_arrays/y_test", np.load("np_arrays/y_test_Unbal.npy"))
     return
 
 #get chunks to fit
 def create_chunks(parts):
-    X=np.load("X.npy")
-    y=np.load("y.npy")
+    X=np.load("np_arrays/X.npy")
+    y=np.load("np_arrays/y.npy")
     
     for i in range(parts):
+        
         split= math.ceil(len(X)/parts)
         start=split*i
         end=start+split
-        if start>(len(X)-1):
+        if start>=(len(X)-1):
             return "False","False"
         if end>(len(X)-1):
             end=len(X)
-        name_x="X_"+str(i)
-        name_y="y_"+str(i)
+        name_x="np_arrays/minibaches/X_"+str(i)
+        name_y="np_arrays/minibaches/y_"+str(i)
         np.save(name_x, X[start:end])
         np.save(name_y,y[start:end])
     return split
@@ -151,28 +152,27 @@ def random_assign(n_workers,parts):
     y_names=["y_"+str(i) for i in n]
     X_assign=[[] for i in range(n_workers)]
     y_assign=[[] for i in range(n_workers)]
+    split= math.ceil(len(n)/n_workers)
+    print("Minibatch size: ",split)
     for i in range(n_workers):
-        split= math.ceil(len(X_names)/parts)
         start=split*i
         end=start+split
-        if start>(len(X_names)-1):
-            return "False","False"
         if end>(len(X_names)-1):
             end=len(X_names)
         X_assign[i]=X_names[start:end]
         y_assign[i]=y_names[start:end]
 
-    np.save("X_assign", X_assign)
-    np.save("y_assign", y_assign)
+    np.save("np_arrays/X_assign", X_assign)
+    np.save("np_arrays/y_assign", y_assign)
     return 
 
 def get_chunk(name,n):
-    X_assign=np.load("X_assign.npy")
-    y_assign=np.load("y_assign.npy")
+    X_assign=np.load("np_arrays/X_assign.npy")
+    y_assign=np.load("np_arrays/y_assign.npy")
     if n>=len(X_assign[name]):
         return "False", "False"
-    X_name=X_assign[name][n]+".npy"
-    y_name=y_assign[name][n]+".npy"
+    X_name="np_arrays/minibaches/"+X_assign[name][n]+".npy"
+    y_name="np_arrays/minibaches/"+y_assign[name][n]+".npy"
     return np.load(X_name), np.load(y_name)
 
 

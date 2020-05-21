@@ -7,7 +7,7 @@ from sklearn import linear_model
 from sklearn import metrics
 from coordinator_file import coordinator
 from worker_file import worker_f
-from func import get_chunk ,create_chunks,create_dataset,load_dataset,pred,check_worker,check_coo,fill_arrays
+from func import get_chunk ,create_chunks,create_dataset,load_dataset,pred,check_worker,check_coo,fill_arrays,random_assign
 
 def main(client,w,new,dataset_params,batches,e,kind):
     print("Start with num of mini-batches:",batches,"and e:",e)
@@ -23,13 +23,14 @@ def main(client,w,new,dataset_params,batches,e,kind):
     if new=='yes':
         create_dataset(dataset_params,kind)
     else:
-        load_dataset(kind,batches)
+        load_dataset(kind)
 
-    X_test=np.load("X_test.npy")
-    y_test=np.load("y_test.npy") 
+    X_test=np.load("np_arrays/X_test.npy")
+    y_test=np.load("np_arrays/y_test.npy") 
 
     create_chunks(batches)
-    
+    random_assign(len(w)-1,batches)
+
     clf = linear_model.SGDClassifier(shuffle=False)
     coo=client.submit(coordinator,len(w)-1,([0],0),e,workers=w[0])
 
