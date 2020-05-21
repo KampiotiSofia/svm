@@ -1,15 +1,13 @@
 
-import traceback
+
 import numpy as np
 import time
 import sys
-from sklearn.datasets import make_moons, make_circles, make_classification 
-from sklearn.model_selection import train_test_split
 from sklearn import linear_model
 from sklearn import metrics
 from coordinator_file import coordinator
 from worker_file import worker_f
-from func import get_chunk
+from func import get_chunk ,create_chunks,create_dataset,load_dataset,pred,check_worker,check_coo,fill_arrays
 
 def main(client,w,new,dataset_params,batches,e,kind):
     print("Start with num of mini-batches:",batches,"and e:",e)
@@ -25,23 +23,13 @@ def main(client,w,new,dataset_params,batches,e,kind):
     if new=='yes':
         create_dataset(dataset_params,kind)
     else:
-        if kind=="balanced":
-            print("Balanced len:",len(np.load("X_bal.npy")))
-            np.save("X", np.load("X_bal.npy"))
-            np.save("y", np.load("y_bal.npy"))
-            np.save("X_test", np.load("X_test_bal.npy"))
-            np.save("y_test", np.load("y_test_bal.npy"))
-        else:
-            print("Unbalanced len:",len(np.load("X_Unbal.npy")))
-            np.save("X", np.load("X_Unbal.npy"))
-            np.save("y", np.load("y_Unbal.npy"))
-            np.save("X_test", np.load("X_test_Unbal.npy"))
-            np.save("y_test", np.load("y_test_Unbal.npy"))
+        load_dataset(kind,batches)
 
     X_test=np.load("X_test.npy")
-    y_test=np.load("y_test.npy")
+    y_test=np.load("y_test.npy") 
 
-
+    create_chunks(batches)
+    
     clf = linear_model.SGDClassifier(shuffle=False)
     coo=client.submit(coordinator,len(w)-1,([0],0),e,workers=w[0])
 
@@ -87,94 +75,6 @@ def main(client,w,new,dataset_params,batches,e,kind):
     for f in worker: del f
 
     return E_array,feature_array,Acc,rounds,sub_rs
-
-def create_dataset(d,kind):
-    
-    X, y = make_classification(n_samples=d["n_samples"], n_features=d["n_features"],n_informative=d["n_informative"],
-        n_redundant=d["n_redundant"], n_repeated=d["n_repeated"],n_classes=d["n_classes"],n_clusters_per_class=d["n_clusters_per_class"],
-        weights=d["weights"],flip_y=d["flip_y"],random_state=d["random_state"])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=int(len(X)/3))
-    try:
-        np.save("X", X_train)
-        np.save("y", y_train)
-        np.save("X_test", X_test)
-        np.save("y_test", y_test)
-        print("A new dataset has been created...")
-    except:
-        print("An exception occurred while trying to save the dataset...")
-    if kind=='balanced':
-        np.save("X_bal", X_train)
-        np.save("y_bal", y_train)
-        np.save("X_test_bal", X_test)
-        np.save("y_test_bal", y_test)
-    else:
-        np.save("X_Unbal", X_train)
-        np.save("y_Unbal", y_train)
-        np.save("X_test_Unbal", X_test)
-        np.save("y_test_Unbal", y_test)
-    return
-
-def pred(E,clf,X_test,y_test):
-    clf.coef_=np.asarray([E[0]])
-    clf.intercept_=np.asarray(E[1])
-    clf.classes_=np.asarray([0,1])
-    y_pred = clf.predict(X_test)
-    #sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
-    acc=metrics.accuracy_score(y_test, y_pred)
-    return clf,acc
-
-def check_worker(worker):
-    status_l=[w.status for w in worker]
-    if status_l.count('finished')>=1:
-        while status_l.count('finished')!=len(status_l):
-            time.sleep(0.01)
-            status_l=[w.status for w in worker]
-        return "end"
-
-    if status_l.count('error')>=1:
-        for w in worker:
-            if w.status=="error":
-                err=traceback.format_tb(w.traceback())
-                print(err)
-                return "err"
-    elif status_l.count('lost')>=1:
-        for w in worker:
-            if w.status=="lost":
-                print("lost")
-                return "lost"
-    
-    
-    return "ok"
-
-def check_coo(coo):
-    if coo.status=="error":
-        err=traceback.format_tb(coo.traceback())
-        print(err)
-        return "err"
-    elif coo.status=="lost":
-        print("lost")
-        return "lost"
-    
-    timeout=0
-    while coo.status!="finished":
-        timeout+=1
-        time.sleep(0.01)
-        if timeout*0.01==100: #assuming that timeout error is 100s
-            print("Someting went wrong...")
-            return "Someting went wrong..."
-    return "ok"
-
-def fill_arrays(rounds,sub_rs,feature_array,result):
-    if len(rounds)==0:
-        rounds.append(result[1])
-    else:
-        rounds.append(rounds[-1]+result[1])
-    sub_rs.extend(result[2])
-    E=result[0][0]
-    for i in range(len(feature_array)):
-        feature_array[i].append(E[i])
-    return rounds,sub_rs,feature_array
 
 def real_partial(batches):
     print("Start...")

@@ -4,7 +4,7 @@ import numpy as np
 import time
 import math 
 
-from func import f , get_chunk
+from func import f, get_chunk
 
 """
 
@@ -85,8 +85,11 @@ def worker_f(name,clf,parts,e):
             print("Error")
             break
         if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
+            
+            print("HEYYYYYY",name)
+            X,y=get_chunk(name,count_chunks) #get_newSi(count_chunks,f_name)
+            print(w_id,"LEN=",len(X),"n_chunks",count_chunks)
             count_chunks+=1
-            X,y=get_chunk(count_chunks,parts) #get_newSi(count_chunks,f_name)
             if type(X)==str and type(y)==str:
                 flag=False
                 print("NO Chunks...")
@@ -112,10 +115,10 @@ def worker_f(name,clf,parts,e):
             #begin of subround...
             while get_endsub()==1:
                 print(w_id,"Received start of subround")
-                count_chunks+=1
-
                 zi=f(Xi,E,e)
-                X,y=get_chunk(count_chunks,parts) #get_newSi(count_chunks,f_name)
+                X,y=get_chunk(name,count_chunks) #get_newSi(count_chunks,f_name)
+                print(w_id,"LEN=",len(X),"n_chunks",count_chunks)
+                count_chunks+=1
                 if type(X)==str and type(y)==str:
                     flag=False
                     print("NO Chunks...")
