@@ -48,8 +48,10 @@ def main(client,w,new,dataset_params,batches,e,kind):
                 result=coo.result()
                 E=result[0]
                 del coo
-                coo= client.submit(coordinator,len(w)-1,E,e,workers=w[0]) 
-                # print("coo",result)
+                status_l=[i.status for i in worker]
+                missed_worker=status_l.count('finished')
+                coo= client.submit(coordinator,len(w)-1-missed_worker,E,e,workers=w[0]) 
+                print("coo",result)
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
                 Acc.append(acc)
@@ -62,7 +64,7 @@ def main(client,w,new,dataset_params,batches,e,kind):
             print("Coordinator:",coo.status,"...\nWorkers:",status_l)
 
             if check_coo(coo)=="ok":
-                #print("coo",result)
+                print("coo",result)
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
                 Acc.append(acc)
@@ -85,17 +87,22 @@ def real_partial(batches):
     Acc=[]
     X_test=np.load("np_arrays/X_test.npy")
     y_test=np.load("np_arrays/y_test.npy")
+
+    # walk through all chunks and train a local model
     while True:
-        count_chunks+=1
-        X,y=get_chunk(count_chunks,batches) #get_newSi(count_chunks,f_name)
-        if type(X)==str and type(y)==str:
+        if count_chunks>=100:
             print("NO Chunks...")
             break
+        name_X="np_arrays/minibatches/X_"+str(count_chunks)+".npy"
+        name_y="np_arrays/minibatches/y_"+str(count_chunks)+".npy"
+        X=np.load(name_X)
+        y=np.load(name_y)
+        count_chunks+=1
         clf.partial_fit(X,y,np.unique(([0,1])))
         y_pred = clf.predict(X_test)
-        #print("Coef:",clf.coef_[0])
+        print("Coef:",clf.coef_[0])
         E.append(clf.coef_[0])
         Acc.append(metrics.accuracy_score(y_test, y_pred))
-        #sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
+        sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
     print("Ended")
     return E,Acc

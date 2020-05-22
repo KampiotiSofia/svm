@@ -7,6 +7,7 @@ from random import shuffle
 import traceback
 import math
 import time
+import sys
 
 #Φ(x)
 def f(x,E,e):
@@ -88,7 +89,7 @@ def pred(E,clf,X_test,y_test):
     clf.intercept_=np.asarray(E[1])
     clf.classes_=np.asarray([0,1])
     y_pred = clf.predict(X_test)
-    #sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
+    sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
     acc=metrics.accuracy_score(y_test, y_pred)
     return clf,acc
 
@@ -160,7 +161,6 @@ def random_assign(n_workers,parts):
             end=len(X_names)
         X_assign[i]=X_names[start:end]
         y_assign[i]=y_names[start:end]
-    print("WHATTTTT",X_assign)
     np.save("np_arrays/X_assign", X_assign)
     np.save("np_arrays/y_assign", y_assign)
     return 

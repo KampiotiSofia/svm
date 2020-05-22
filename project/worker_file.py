@@ -87,7 +87,6 @@ def worker_f(name,clf,parts,e):
         if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
             
             X,y=get_chunk(name,count_chunks) #get_newSi(count_chunks,f_name)
-            print(w_id,"LEN=",len(X),"n_chunks",count_chunks)
             count_chunks+=1
             if type(X)==str and type(y)==str:
                 flag=False
@@ -116,7 +115,6 @@ def worker_f(name,clf,parts,e):
                 print(w_id,"Received start of subround")
                 zi=f(Xi,E,e)
                 X,y=get_chunk(name,count_chunks) #get_newSi(count_chunks,f_name)
-                print(w_id,"LEN=",len(X),"n_chunks",count_chunks)
                 count_chunks+=1
                 if type(X)==str and type(y)==str:
                     flag=False
@@ -136,17 +134,19 @@ def worker_f(name,clf,parts,e):
                         c_th=(f(Xi,E,e)-zi)/th
                     ci_new=max(ci,math.floor(c_th))
                     if ci!=ci_new: #if we detect a difference send it to the coordinator
+                        incr=ci_new-ci
+                        pub_incr.put(incr)
                         ci=ci_new
-                        pub_incr.put(ci)
                         print(w_id,"Sended...",ci)
             pub_f.put(f(Xi,E,e))
-            S_prev[0]=list(Si[0])
-            S_prev[1]=Si[1]
+            
             print(w_id,"Sended Fi") 
             print(w_id,"End of subround")
             #end of subround...
 
         # end of round
+        S_prev[0]=list(Si[0])
+        S_prev[1]=Si[1]
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")    
     print(w_id,"Ended...")
