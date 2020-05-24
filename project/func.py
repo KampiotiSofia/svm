@@ -78,8 +78,8 @@ def create_chunks(parts):
             return "False","False"
         if end>(len(X)-1):
             end=len(X)
-        name_x="np_arrays/minibatches/X_"+str(i)
-        name_y="np_arrays/minibatches/y_"+str(i)
+        name_x="np_arrays/chunks/X_"+str(i)
+        name_y="np_arrays/chunks/y_"+str(i)
         np.save(name_x, X[start:end])
         np.save(name_y,y[start:end])
     return split
@@ -134,16 +134,16 @@ def check_coo(coo):
             return "Someting went wrong..."
     return "ok"
 
-def fill_arrays(rounds,sub_rs,feature_array,result):
-    if len(rounds)==0:
-        rounds.append(result[1])
-    else:
-        rounds.append(rounds[-1]+result[1])
-    sub_rs.extend(result[2])
-    E=result[0][0]
-    for i in range(len(feature_array)):
-        feature_array[i].append(E[i])
-    return rounds,sub_rs,feature_array
+# def fill_arrays(rounds,sub_rs,feature_array,result):
+#     if len(rounds)==0:
+#         rounds.append(result[1])
+#     else:
+#         rounds.append(rounds[-1]+result[1])
+#     sub_rs.extend(result[2])
+#     E=result[0][0]
+#     for i in range(len(feature_array)):
+#         feature_array[i].append(E[i])
+#     return rounds,sub_rs,feature_array
 
 def random_assign(n_workers,parts):
     n=[i for i in range(parts)]
@@ -153,7 +153,7 @@ def random_assign(n_workers,parts):
     X_assign=[[] for i in range(n_workers)]
     y_assign=[[] for i in range(n_workers)]
     split= int(len(n)/n_workers)
-    print("Number of minibatch for each worker: ",split)
+    print("Number of chunks for each worker: ",split)
     for i in range(n_workers):
         start=split*i
         end=start+split
@@ -165,14 +165,30 @@ def random_assign(n_workers,parts):
     np.save("np_arrays/y_assign", y_assign)
     return 
 
-def get_chunk(name,n):
+def load_chunks(name):
     X_assign=np.load("np_arrays/X_assign.npy")
     y_assign=np.load("np_arrays/y_assign.npy")
-    if n>=len(X_assign[name]):
-        return "False", "False"
-    X_name="np_arrays/minibatches/"+X_assign[name][n]+".npy"
-    y_name="np_arrays/minibatches/"+y_assign[name][n]+".npy"
-    return np.load(X_name), np.load(y_name)
+    return X_assign[name], y_assign[name]
+
+def load_np(n1,n2): 
+    try:
+        X=np.load("np_arrays/chunks/"+n1+".npy")
+        y=np.load("np_arrays/chunks/"+n2+".npy")
+        return X,y
+    except:
+        print("No chunks left")
+        return None
+
+
+def get_minibatch(X,y,n):
+    split= int(len(X)/10)
+    start=split*n
+    end=start+split
+    if end>(len(X)-1):
+        end=len(X-1)
+    if start>=(len(X)-1):
+        return None
+    return X[start:end], y[start:end]
 
 
 def same_len(x,E):

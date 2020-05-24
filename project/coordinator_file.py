@@ -13,7 +13,7 @@ First send E if E=0,askes workers to compute local drifts in order to update E.
 This future ends every time that we get a new E. Starts again till workers have no chunks to read 
 """
 
-def coordinator(n_workers,E,e):
+def coordinator(n_workers,E,n_rounds,e):
     pub_init = Pub('Initialize')
     pub_th = Pub('Theta')
     pub_endr = Pub('EndRound')
@@ -75,7 +75,6 @@ def coordinator(n_workers,E,e):
     if check=="end":
         print("No workers left")
         return
-    n_rounds=0
     n_subs=0
     k=n_workers
     th=0
@@ -102,15 +101,12 @@ def coordinator(n_workers,E,e):
         print("Coo Sended E")
     
     y=k*f([[0],0],E,e)
-    subs=[]
     flag=True #use this flag to finish future if chunks are out
 
 	#start of the round...
-
+    print("START ROUND:",n_rounds)
     while y<=e_y*k*f([[0],0],E,e): 
         
-        n_rounds+=1
-        print("START ROUND:",n_rounds)
         th=-y/(2*k)
 
         check=check_subcribers(pub_endr)
@@ -123,8 +119,10 @@ def coordinator(n_workers,E,e):
         if check=="end":
             print("No workers left")
             return
-        pub_th.put(th) #send theta
         print("Coo Sended theta")
+        pub_th.put(th) #send theta
+        n_subs+=1
+        print("START SUBROUND:",n_subs)
         c=0
         fis=[]
         n_subs=0
@@ -132,9 +130,6 @@ def coordinator(n_workers,E,e):
 		#start of the subround...
 
         while c<k: 
-            
-            n_subs+=1
-            print("START SUBROUND:",n_subs)
             
             check=check_subcribers(pub_endr)
             if check=="end":
@@ -178,7 +173,6 @@ def coordinator(n_workers,E,e):
         print("Coo Received fi's")
         y=add_f(fis)
         print("y",y)
-        subs.append(n_subs)
 	#rounds ended...
 
     check=check_subcribers(pub_endr)
@@ -193,8 +187,9 @@ def coordinator(n_workers,E,e):
     e1=E[0]+(sum_xi[0]/n_workers)
     e2=E[1]+(sum_xi[1]/n_workers)
     E=[e1,e2]
+    n_rounds+=1
     print("Coo ended...")
-    return E,n_rounds,subs
+    return E,n_rounds,n_subs
 
 
 #----------------------------------------------------------------------------------------------

@@ -7,7 +7,7 @@ from sklearn import linear_model
 from sklearn import metrics
 from coordinator_file import coordinator
 from worker_file import worker_f
-from func import get_chunk ,create_chunks,create_dataset,load_dataset,pred,check_worker,check_coo,fill_arrays,random_assign
+from func import create_chunks,create_dataset,load_dataset,pred,check_worker,check_coo,random_assign
 
 def main(client,w,new,dataset_params,batches,e,kind):
     print("Start with num of mini-batches:",batches,"and e:",e)
@@ -32,7 +32,7 @@ def main(client,w,new,dataset_params,batches,e,kind):
     random_assign(len(w)-1,batches)
 
     clf = linear_model.SGDClassifier(shuffle=False)
-    coo=client.submit(coordinator,len(w)-1,([0],0),e,workers=w[0])
+    coo=client.submit(coordinator,len(w)-1,([0],0),0,e,workers=w[0])
 
     for i in range(len(w)-1):
         worker.append(client.submit(worker_f,i,clf,batches,e,workers=w[i+1]))
@@ -47,16 +47,16 @@ def main(client,w,new,dataset_params,batches,e,kind):
             if coo.status=='finished':
                 result=coo.result()
                 E=result[0]
+                n_rounds=result[1]
                 del coo
                 status_l=[i.status for i in worker]
                 missed_worker=status_l.count('finished')
-                coo= client.submit(coordinator,len(w)-1-missed_worker,E,e,workers=w[0]) 
+                coo= client.submit(coordinator,len(w)-1-missed_worker,E,n_rounds,e,workers=w[0]) 
                 print("coo",result)
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
                 Acc.append(acc)
-                E_array.append(E[0])
-                rounds,sub_rs,feature_array=fill_arrays(rounds,sub_rs,feature_array,result)     
+                E_array.append(E[0])     
         elif c=="end":
             #no chunks workers ended 
             print("End of chunks...")
@@ -69,7 +69,6 @@ def main(client,w,new,dataset_params,batches,e,kind):
                 clf,acc=pred(E,clf,X_test,y_test)
                 Acc.append(acc)
                 E_array.append(E[0])
-                rounds,sub_rs,feature_array=fill_arrays(rounds,sub_rs,feature_array,result)
                 print("Finished with no error...\n\n")
             break 
         else:
@@ -77,7 +76,7 @@ def main(client,w,new,dataset_params,batches,e,kind):
     del coo
     for f in worker: del f
 
-    return E_array,feature_array,Acc,rounds,sub_rs
+    return E_array,feature_array,Acc,n_rounds,sub_rs
 
 def real_partial(batches):
     print("Start...")
