@@ -29,40 +29,43 @@ def worker_f(name,clf,parts,e):
     
 
     # get initial E value from coordinator
-    def get_init():    
+    def get_init():
+        w_id= get_worker().name    
         try:
             init=sub_init.get(timeout=100)
+            print(w_id,"Received E")
             return init
         except TimeoutError:
-            print('Init aknowlegment not received')
-            return []
+            return None
 
     #get theta from cordinator   
-    def get_th():    
+    def get_th():
+        w_id= get_worker().name    
         try:
             th=sub_th.get(timeout=100)
+            print(w_id,"Received theta")
             return th
         except TimeoutError:
-            print('Theta aknowlegment not received')
-            return -10
+            print(w_id,'Theta aknowlegment not received')
+            return None
 
     #get aknowlegment for continue or stop the rounds    
     def get_endr():
         try:
-            endr=sub_endr.get(timeout=100)
+            endr=sub_endr.get(timeout=5)
+            print(w_id,'End of round received')
             return endr
         except TimeoutError:
-            print('EndofRound aknowlegment not received')
-            return -10
+            return None
 
     #get aknowlegment for continue or stop the subrounds
     def get_endsub():
         try:
-            endsub=sub_endsub.get(timeout=100)
+            endsub=sub_endsub.get(timeout=5)
+            print(w_id,'End of subround received')
             return endsub
         except TimeoutError:
-            print('EndofSubRound aknowlegment not received')
-            return -10
+            return None
 
 
     #                       ____Start of worker____
@@ -82,31 +85,34 @@ def worker_f(name,clf,parts,e):
     #TAG chunks assigned and load first one
     X_chunk_array,y_chunk_array=load_chunks(name) #get the array with the chunk names assigned to this worker
 
-    X_chunk, y_chunk=load_np(X_chunk_array[count_chunks],y_chunk_array[count_chunks])
+    X_chunk, y_chunk=load_np(X_chunk_array,y_chunk_array,count_chunks)
     count_chunks+=1
     
     print("worker",w_id,"started...")
-    #FIXME change counts of rounds and subrounds
     while flag==True: #while this flag stays true there are chunks
         E=get_init() # get E from coordinator
-        print(w_id,"Received E")
-        if len(E)==0:
+        if len(E) is None:
             print("Error")
             break
         if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
             #TODO make it prettier
             temp=get_minibatch(X_chunk,y_chunk,minibatches) #get_newSi(count_chunks,f_name)
-            minibatches+=1
+            
             if temp is None:
-                load=load_np(X_chunk_array[count_chunks],y_chunk_array[count_chunks])
+                minibatches=0
+                load=load_np(X_chunk_array,y_chunk_array,count_chunks)
                 if load is None:
                     print(w_id,"End of chunks")
                     flag=False 
                     break
                 X_chunk, y_chunk=load
+                print("Chunks",len(X_chunk))
                 count_chunks+=1
                 print(w_id,"Continue to next chunk...")
                 temp=get_minibatch(X_chunk,y_chunk,minibatches)
+            
+            minibatches+=1
+            print("Len minibatches",len(temp),minibatches)
             X,y=temp
               
             clf.partial_fit(X,y,np.unique(([0,1])))
@@ -115,36 +121,30 @@ def worker_f(name,clf,parts,e):
             pub_x.put(Xi)
             print(w_id,"Sended Xi")
             E=get_init() # get E from coordinator
-            print(w_id,"Received E after warmup...")
+        print(w_id,"Start of round") 
         clf.coef_[0]=E[0]
         clf.intercept_[0]=E[1]
         S_prev[0]=list(E[0])
         S_prev[1]=E[1]
         #begin of round...
         #FIXME do not send message every time & check rounds and subrounds 
-        while get_endr()==1:
-            print(w_id,"Received start of round") 
+        while get_endr()==None:
+            
             ci=0
             Xi=[[0],0]
             th=get_th() #get theta
-            print(w_id,"Received theta")
-            if th==-10:
+            if th==None:
                 break
-
+            print(w_id,"Received start of subround")
             #begin of subround...
-            while get_endsub()==1:
-                print(w_id,"Received start of subround")
+            while get_endsub()==None:
                 zi=f(Xi,E,e)
                 temp=get_minibatch(X_chunk,y_chunk,minibatches) #get_newSi(count_chunks,f_name)
                 
                 while temp is None:
-                    if count_chunks>=len(X_chunk_array):
-                        print(w_id,"End of chunks")
-                        flag=False 
-                        break
-                    load=load_np(X_chunk_array[count_chunks],y_chunk_array[count_chunks])
+                    load=load_np(X_chunk_array,y_chunk_array,count_chunks)
                     if load is None:
-                        print(w_id,"Error")
+                        print(w_id,"End of chunks")
                         flag=False 
                         break
                     X_chunk, y_chunk=load
@@ -152,24 +152,27 @@ def worker_f(name,clf,parts,e):
                     print(w_id,"Continue to next chunk...")
                     minibatches=0
                     temp=get_minibatch(X_chunk,y_chunk,minibatches)
-                minibatches+=1
-                X,y=temp
-                clf.partial_fit(X,y,np.unique([0,1]))
-                coef=clf.coef_[0]
-                interc=clf.intercept_[0]
-                Si[0]=coef
-                Si[1]=interc
-                Xi=[Si[0]-S_prev[0],Si[1]-S_prev[1]]
-                c_th=0 
+                if flag==False:
+                    pub_incr.put(-1)
+                else:
+                    minibatches+=1
+                    X,y=temp
+                    clf.partial_fit(X,y,np.unique([0,1]))
+                    coef=clf.coef_[0]
+                    interc=clf.intercept_[0]
+                    Si[0]=coef
+                    Si[1]=interc
+                    Xi=[Si[0]-S_prev[0],Si[1]-S_prev[1]]
+                    c_th=0 
 
-                if th!=0: #avoid division with 0 if th=0 c_th=0
-                    c_th=(f(Xi,E,e)-zi)/th
-                ci_new=max(ci,math.floor(c_th))
-                if ci!=ci_new: #if we detect a difference send it to the coordinator
-                    incr=ci_new-ci
-                    pub_incr.put(incr)
-                    ci=ci_new
-                    print(w_id,"Sended...",incr)
+                    if th!=0: #avoid division with 0 if th=0 c_th=0
+                        c_th=(f(Xi,E,e)-zi)/th
+                    ci_new=max(ci,math.floor(c_th))
+                    if ci!=ci_new: #if we detect a difference send it to the coordinator
+                        incr=ci_new-ci
+                        pub_incr.put(incr)
+                        ci=ci_new
+                        print(w_id,"Sended...",incr)
             pub_f.put(f(Xi,E,e))
             
             print(w_id,"Sended Fi") 

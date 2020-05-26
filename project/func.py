@@ -170,10 +170,10 @@ def load_chunks(name):
     y_assign=np.load("np_arrays/y_assign.npy")
     return X_assign[name], y_assign[name]
 
-def load_np(n1,n2): 
+def load_np(n1,n2,i): 
     try:
-        X=np.load("np_arrays/chunks/"+n1+".npy")
-        y=np.load("np_arrays/chunks/"+n2+".npy")
+        X=np.load("np_arrays/chunks/"+n1[i]+".npy")
+        y=np.load("np_arrays/chunks/"+n2[i]+".npy")
         return X,y
     except:
         print("No chunks left")

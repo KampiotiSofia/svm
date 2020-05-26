@@ -25,12 +25,13 @@ def coordinator(n_workers,E,n_rounds,e):
     # get increments from workers
     def get_incr():    
             try:
-                incr=sub_incr.get(timeout=15)
+                incr=sub_incr.get(timeout=5)
+                print("Coo Received increments...")
+                if incr<0: # works as a flag to let coordinator know that chunks are out
+                    print("Coo received notice of chunks ended...")
                 return incr
             except TimeoutError:
-                print('Increment aknowlegment not received')
-                return -10
-
+                return 0
     # get fi's from all workers
     def get_fi(n_workers):  
         fis=[]
@@ -59,22 +60,18 @@ def coordinator(n_workers,E,n_rounds,e):
             print('Xi aknowlegment not received')
             return -10
 
-    def check_subcribers(pub):
+    def check_subcribers(pub,n_workers):
         print("Check...")
-        if n_workers==0:
-            return "end"
+        # if n_workers==0:
+        #     print("No workers left")
+        #     return "end"
         while len(pub.subscribers)!=n_workers: #if not all workers subscribe sleep
                 time.sleep(0.01)
-        print("Exit check...")
+        print("OK Check")
         return "ok"
 
     #____________________________Start coordinator_________________________________
-	
-    
-    check=check_subcribers(pub_init)
-    if check=="end":
-        print("No workers left")
-        return
+    if check_subcribers(pub_init,n_workers)=="end":return None
     n_subs=0
     k=n_workers
     th=0
@@ -85,9 +82,11 @@ def coordinator(n_workers,E,n_rounds,e):
     e_y=0.01
     
     print("Coo started")
+    
+
     if np.array_equal(E[0],np.asarray([0])): #if E=0 we need to update E
         pub_init.put(([0],0))
-        print("Coo Sended E=0...") 
+        print("Warmup...Coo Sended E=0...") 
         drifts=get_xi(k) #get local drifts (Xi's)
         print("Coo received xi's...")
         sum_xi=add_x(drifts)
@@ -101,72 +100,44 @@ def coordinator(n_workers,E,n_rounds,e):
         print("Coo Sended E")
     
     y=k*f([[0],0],E,e)
+    barrier=e_y*k*f([[0],0],E,e)
     flag=True #use this flag to finish future if chunks are out
 
 	#start of the round...
     print("START ROUND:",n_rounds)
-    while y<=e_y*k*f([[0],0],E,e): 
-        
+    while y<=barrier: 
         th=-y/(2*k)
+        #TAG pub_endr.put(1) #let worker know that a new round begins
 
-        check=check_subcribers(pub_endr)
-        if check=="end":
-            print("No workers left")
-            return
-        pub_endr.put(1) #let worker know that a new round begins
-        print("Coo Sended Startofround..")
-        check=check_subcribers(pub_endr)
-        if check=="end":
-            print("No workers left")
-            return
-        print("Coo Sended theta")
+        #if check_subcribers(pub_th,n_workers)=="end":return
         pub_th.put(th) #send theta
+        print("Coo Sended theta")
         n_subs+=1
         print("START SUBROUND:",n_subs)
         c=0
         fis=[]
-        n_subs=0
         
 		#start of the subround...
 
         while c<k: 
-            
-            check=check_subcribers(pub_endr)
-            if check=="end":
-                print("No workers left")
-                return
-            pub_endsub.put(1) #let worker know that a new subround begins
-            print("Coo Sended StartofSub..")
+          
+            #TAG pub_endsub.put(1) #let worker know that a new subround begins
             incr=get_incr() #Get increments
-            print("Coo Received increments...")
-            if type(incr)==str: # works as a flag to let coordinator know that chunks are out
-                print("Coo received notice of chunks ended...")
-                n_workers=n_workers-1
-                if(n_workers==0):
-                    flag=False 
-                    break
-                else:
-                    incr=0
-
-            if incr==-10: #if no increments received
-                incr=0
             
+            if incr<0: # works as a flag to let coordinator know that chunks are out
+                flag=False 
+                break
+                
             c=c+incr
 			#subrounds ended...
 
         if flag==False: #if false chunks are out end future
-            check=check_subcribers(pub_endr)
-            if check=="end":
-                print("No workers left")
-                return
+            #if check_subcribers(pub_endsub,n_workers)=="end":return
             pub_endsub.put(0)
             print("Coo Sended endofSub..")
             break
 
-        check=check_subcribers(pub_endr)
-        if check=="end":
-            print("No workers left")
-            return
+        #if check_subcribers(pub_endsub,n_workers)=="end":return
         pub_endsub.put(0) #let workers know that subrounds ended
         print("Coo Sended endofSub..") 
         fis=get_fi(k) #get F(Xi)'s from workers
@@ -175,10 +146,7 @@ def coordinator(n_workers,E,n_rounds,e):
         print("y",y)
 	#rounds ended...
 
-    check=check_subcribers(pub_endr)
-    if check=="end":
-        print("No workers left")
-        return
+    #if check_subcribers(pub_endr,n_workers)=="end":return
     pub_endr.put(0) #let workers know that rounds ended 
     print("Coo Sended endofround..")
     drifts=get_xi(k) #get local drifts (Xi's)

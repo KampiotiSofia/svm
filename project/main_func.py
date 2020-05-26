@@ -16,6 +16,7 @@ def main(client,w,new,dataset_params,batches,e,kind):
     rounds=[]
     sub_rs=[]
     worker=[]
+    time_stamps=[]
     E_array=[[] for i in range(dataset_params["n_features"])]
     feature_array=[[] for i in range(dataset_params["n_features"])]
 
@@ -46,6 +47,9 @@ def main(client,w,new,dataset_params,batches,e,kind):
             #workers still running 
             if coo.status=='finished':
                 result=coo.result()
+                time_stamps.append(time.time)
+                if E is None:
+                    break
                 E=result[0]
                 n_rounds=result[1]
                 del coo
@@ -55,8 +59,7 @@ def main(client,w,new,dataset_params,batches,e,kind):
                 print("coo",result)
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
-                Acc.append(acc)
-                E_array.append(E[0])     
+                Acc.append(acc)    
         elif c=="end":
             #no chunks workers ended 
             print("End of chunks...")
@@ -68,7 +71,6 @@ def main(client,w,new,dataset_params,batches,e,kind):
                 # here we will predict
                 clf,acc=pred(E,clf,X_test,y_test)
                 Acc.append(acc)
-                E_array.append(E[0])
                 print("Finished with no error...\n\n")
             break 
         else:
@@ -76,7 +78,7 @@ def main(client,w,new,dataset_params,batches,e,kind):
     del coo
     for f in worker: del f
 
-    return E_array,feature_array,Acc,n_rounds,sub_rs
+    return Acc,n_rounds,time_stamps
 
 def real_partial(batches):
     print("Start...")
@@ -92,8 +94,8 @@ def real_partial(batches):
         if count_chunks>=100:
             print("NO Chunks...")
             break
-        name_X="np_arrays/minibatches/X_"+str(count_chunks)+".npy"
-        name_y="np_arrays/minibatches/y_"+str(count_chunks)+".npy"
+        name_X="np_arrays/chunks/X_"+str(count_chunks)+".npy"
+        name_y="np_arrays/chunks/y_"+str(count_chunks)+".npy"
         X=np.load(name_X)
         y=np.load(name_y)
         count_chunks+=1
