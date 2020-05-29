@@ -23,7 +23,7 @@ def f(x,E,e):
     return max(t1,t2)
 
 
-def create_dataset(d,kind):
+def create_dataset(d,batches,w):
     
     X, y = make_classification(n_samples=d["n_samples"], n_features=d["n_features"],n_informative=d["n_informative"],
         n_redundant=d["n_redundant"], n_repeated=d["n_repeated"],n_classes=d["n_classes"],n_clusters_per_class=d["n_clusters_per_class"],
@@ -36,18 +36,11 @@ def create_dataset(d,kind):
         np.save("np_arrays/X_test", X_test)
         np.save("np_arrays/y_test", y_test)
         print("A new dataset has been created...")
+        create_chunks(batches)
+        random_assign(len(w)-1,batches)
     except:
         print("An exception occurred while trying to save the dataset...")
-    if kind=='balanced':
-        np.save("np_arrays/X_bal", X_train)
-        np.save("np_arrays/y_bal", y_train)
-        np.save("np_arrays/X_test_bal", X_test)
-        np.save("np_arrays/y_test_bal", y_test)
-    else:
-        np.save("np_arrays/X_Unbal", X_train)
-        np.save("np_arrays/y_Unbal", y_train)
-        np.save("np_arrays/X_test_Unbal", X_test)
-        np.save("np_arrays/y_test_Unbal", y_test)
+        
     return
 
 def load_dataset(kind):
@@ -65,24 +58,6 @@ def load_dataset(kind):
         np.save("np_arrays/y_test", np.load("np_arrays/y_test_Unbal.npy"))
     return
 
-#get chunks to fit
-def create_chunks(parts):
-    X=np.load("np_arrays/X.npy")
-    y=np.load("np_arrays/y.npy")
-    split= int(len(X)/parts)
-    print("Size of minibatch: ",split)
-    for i in range(parts):
-        start=split*i
-        end=start+split
-        if start>=(len(X)-1):
-            return "False","False"
-        if end>(len(X)-1):
-            end=len(X)
-        name_x="np_arrays/chunks/X_"+str(i)
-        name_y="np_arrays/chunks/y_"+str(i)
-        np.save(name_x, X[start:end])
-        np.save(name_y,y[start:end])
-    return split
 
 def pred(E,clf,X_test,y_test):
     clf.coef_=np.asarray([E[0]])
@@ -95,10 +70,10 @@ def pred(E,clf,X_test,y_test):
 
 def check_worker(worker):
     status_l=[w.status for w in worker]
-    if status_l.count('finished')>=1:
-        while status_l.count('finished')!=len(status_l):
-            time.sleep(0.01)
-            status_l=[w.status for w in worker]
+    if status_l.count('finished')==len(status_l):
+        # while status_l.count('finished')!=len(status_l):
+        #     time.sleep(0.01)
+        #     status_l=[w.status for w in worker]
         return "end"
 
     if status_l.count('error')>=1:
@@ -144,6 +119,25 @@ def check_coo(coo):
 #     for i in range(len(feature_array)):
 #         feature_array[i].append(E[i])
 #     return rounds,sub_rs,feature_array
+#get chunks to fit
+
+def create_chunks(parts):
+    X=np.load("np_arrays/X.npy")
+    y=np.load("np_arrays/y.npy")
+    split= int(len(X)/parts)
+    print("Size of chunk: ",split)
+    for i in range(parts):
+        start=split*i
+        end=start+split
+        if start>=(len(X)-1):
+            return "False","False"
+        if end>(len(X)-1):
+            end=len(X)
+        name_x="np_arrays/chunks/X_"+str(i)
+        name_y="np_arrays/chunks/y_"+str(i)
+        np.save(name_x, X[start:end])
+        np.save(name_y,y[start:end])
+    return split
 
 def random_assign(n_workers,parts):
     n=[i for i in range(parts)]
@@ -180,10 +174,12 @@ def load_np(n1,n2,i):
         return None
 
 
-def get_minibatch(X,y,n):
-    split= int(len(X)/10)
+def get_minibatch(X,y,n,n_minibatch):
+    print("NUm minibatch",n)
+    split= int(len(X)/n_minibatch)
     start=split*n
     end=start+split
+    print("PSSSS len",len(X))
     if end>(len(X)-1):
         end=len(X-1)
     if start>=(len(X)-1):

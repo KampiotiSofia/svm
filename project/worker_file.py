@@ -96,7 +96,8 @@ def worker_f(name,clf,parts,e):
             break
         if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
             #TODO make it prettier
-            temp=get_minibatch(X_chunk,y_chunk,minibatches) #get_newSi(count_chunks,f_name)
+            print(w_id,"Warmup....")
+            temp=get_minibatch(X_chunk,y_chunk,minibatches,parts) #get_newSi(count_chunks,f_name)
             
             if temp is None:
                 minibatches=0
@@ -106,10 +107,9 @@ def worker_f(name,clf,parts,e):
                     flag=False 
                     break
                 X_chunk, y_chunk=load
-                print("Chunks",len(X_chunk))
                 count_chunks+=1
                 print(w_id,"Continue to next chunk...")
-                temp=get_minibatch(X_chunk,y_chunk,minibatches)
+                temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
             
             minibatches+=1
             print("Len minibatches",len(temp),minibatches)
@@ -139,7 +139,7 @@ def worker_f(name,clf,parts,e):
             #begin of subround...
             while get_endsub()==None:
                 zi=f(Xi,E,e)
-                temp=get_minibatch(X_chunk,y_chunk,minibatches) #get_newSi(count_chunks,f_name)
+                temp=get_minibatch(X_chunk,y_chunk,minibatches,parts) 
                 
                 while temp is None:
                     load=load_np(X_chunk_array,y_chunk_array,count_chunks)
@@ -151,10 +151,11 @@ def worker_f(name,clf,parts,e):
                     count_chunks+=1
                     print(w_id,"Continue to next chunk...")
                     minibatches=0
-                    temp=get_minibatch(X_chunk,y_chunk,minibatches)
+                    temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
                 if flag==False:
                     pub_incr.put(-1)
                 else:
+                    print("Into else")
                     minibatches+=1
                     X,y=temp
                     clf.partial_fit(X,y,np.unique([0,1]))
@@ -181,7 +182,9 @@ def worker_f(name,clf,parts,e):
 
         # end of round
         pub_x.put(Xi) # send Xi
-        print(w_id,"Sended Xi")    
+        print(w_id,"Sended Xi")
+        if flag==False:
+            break    
     print(w_id,"Ended...")
     print("Chunks",count_chunks)
     return Si
