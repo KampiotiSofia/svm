@@ -45,7 +45,6 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                     break
                 else:
                     time_stamps.append(end_time-start_time)
-                    start_time=time.time()
                     E=result[0]
                     n_rounds=result[1]
                     del coo

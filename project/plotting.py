@@ -3,7 +3,7 @@ from matplotlib.pyplot import figure
 from jupyterthemes import jtplot
 
 
-def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,threshold,labels):
+def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,threshold,labels,name):
     jtplot.style(theme='grade3')
     
     figure(figsize=(15,15)) 
@@ -44,5 +44,6 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,threshold,labels):
     plt.ylabel("Accuracy")
     plt.title('1.4 Accuracy/Time centralized')
     plt.legend()
+    plt.savefig(name)
     plt.show()
     return

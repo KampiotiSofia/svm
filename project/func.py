@@ -175,11 +175,9 @@ def load_np(n1,n2,i):
 
 
 def get_minibatch(X,y,n,n_minibatch):
-    print("NUm minibatch",n)
     split= int(len(X)/n_minibatch)
     start=split*n
     end=start+split
-    print("PSSSS len",len(X))
     if end>(len(X)-1):
         end=len(X-1)
     if start>=(len(X)-1):
