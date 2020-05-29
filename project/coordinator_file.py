@@ -84,8 +84,8 @@ def coordinator(n_workers,E,n_rounds,e):
     print("Coo started")
     
 
-    if np.array_equal(E[0],np.asarray([0])): #if E=0 we need to update E
-        pub_init.put(([0],0))
+    if E is None: #if E=0 we need to update E
+        pub_init.put(None)
         print("Warmup...Coo Sended E=0...") 
         drifts=get_xi(k) #get local drifts (Xi's)
         print("Coo received xi's...")

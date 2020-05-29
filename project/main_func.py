@@ -25,12 +25,13 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     y_test=np.load("np_arrays/y_test.npy") 
 
     clf = linear_model.SGDClassifier(shuffle=False)
-    coo=client.submit(coordinator,len(w)-1,([0],0),0,e,workers=w[0])
+    coo=client.submit(coordinator,len(w)-1,None,0,e,workers=w[0])
 
     for i in range(len(w)-1):
         worker.append(client.submit(worker_f,i,clf,n_minibatch,e,workers=w[i+1]))
 
     print("In progress...")
+    start_time=time.time()
     while True:
         #check if anything unexpected happend to the workers
         time.sleep(1)
@@ -38,11 +39,13 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
         if  c=="ok":
             #workers still running 
             if coo.status=='finished':
+                end_time=time.time()
                 result=coo.result()
-                time_stamps.append(time.time())
                 if result is None:
                     break
                 else:
+                    time_stamps.append(end_time-start_time)
+                    start_time=time.time()
                     E=result[0]
                     n_rounds=result[1]
                     del coo
@@ -64,10 +67,10 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     print("Coordinator:",coo.status,"...\nWorkers:",status_l)
 
     if check_coo(coo)=="ok":
-        print("coo",result)
-        # here we will predict
-        clf,acc=pred(E,clf,X_test,y_test)
-        Acc.append(acc)
+        # print("coo",result)
+        # # here we will predict
+        # clf,acc=pred(E,clf,X_test,y_test)
+        # Acc.append(acc)
         print("Finished with no error...\n\n")
     del coo
     for f in worker: del f

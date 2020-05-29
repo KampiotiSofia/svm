@@ -91,10 +91,10 @@ def worker_f(name,clf,parts,e):
     print("worker",w_id,"started...")
     while flag==True: #while this flag stays true there are chunks
         E=get_init() # get E from coordinator
-        if len(E) is None:
-            print("Error")
-            break
-        if np.array_equal(E[0],np.asarray([0])): #if E=0 compute Xi and return Xi to update E
+        #if len(E) is None:
+         #   print("Error")
+          #  break
+        if E is None: #if E=0 compute Xi and return Xi to update E
             #TODO make it prettier
             print(w_id,"Warmup....")
             temp=get_minibatch(X_chunk,y_chunk,minibatches,parts) #get_newSi(count_chunks,f_name)
@@ -154,6 +154,7 @@ def worker_f(name,clf,parts,e):
                     temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
                 if flag==False:
                     pub_incr.put(-1)
+                    break
                 else:
                     print("Into else")
                     minibatches+=1
@@ -175,9 +176,11 @@ def worker_f(name,clf,parts,e):
                         ci=ci_new
                         print(w_id,"Sended...",incr)
             pub_f.put(f(Xi,E,e))
-            
             print(w_id,"Sended Fi") 
             print(w_id,"End of subround")
+            if flag==False:
+                break
+            
             #end of subround...
 
         # end of round
@@ -186,6 +189,6 @@ def worker_f(name,clf,parts,e):
         if flag==False:
             break    
     print(w_id,"Ended...")
-    print("Chunks",count_chunks)
+    #print("Chunks",count_chunks)
     return Si
 
