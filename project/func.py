@@ -37,7 +37,7 @@ def create_dataset(d,batches,w):
         np.save("np_arrays/y_test", y_test)
         print("A new dataset has been created...")
         create_chunks(batches)
-        random_assign(len(w)-1,batches)
+        #random_assign(len(w)-1,batches)
     except:
         print("An exception occurred while trying to save the dataset...")
         
@@ -66,7 +66,7 @@ def pred(E,clf,X_test,y_test):
     y_pred = clf.predict(X_test)
     sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
     acc=metrics.accuracy_score(y_test, y_pred)
-    return clf,acc
+    return acc
 
 def check_worker(worker):
     status_l=[w.status for w in worker]

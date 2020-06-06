@@ -32,11 +32,12 @@ def worker_f(name,clf,parts,e):
     def get_init():
         w_id= get_worker().name    
         try:
-            init=sub_init.get(timeout=100)
+            init=sub_init.get(timeout=150)
             print(w_id,"Received E")
             return init
         except TimeoutError:
-            return None
+            print(w_id,'Error E not received')
+            return False
 
     #get theta from cordinator   
     def get_th():
@@ -73,11 +74,12 @@ def worker_f(name,clf,parts,e):
     
     th=0
     w_id= get_worker().name #get worker id
+    print("worker",w_id,"started...")
     flag=True 
     E=[[0],0]
     Si=[0,0]
     S_prev=[0,0]
-    Xi=[]
+    Xi=[[0],0]
 
     count_chunks=0
     minibatches=0
@@ -88,12 +90,13 @@ def worker_f(name,clf,parts,e):
     X_chunk, y_chunk=load_np(X_chunk_array,y_chunk_array,count_chunks)
     count_chunks+=1
     
-    print("worker",w_id,"started...")
+    
     while flag==True: #while this flag stays true there are chunks
         E=get_init() # get E from coordinator
-        #if len(E) is None:
-         #   print("Error")
-          #  break
+        if E is False: 
+            pub_incr.put(-1) 
+            break
+        
         if E is None: #if E=0 compute Xi and return Xi to update E
             #TODO make it prettier
             print(w_id,"Warmup....")
@@ -112,7 +115,6 @@ def worker_f(name,clf,parts,e):
                 temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
             
             minibatches+=1
-            print("Len minibatches",len(temp),minibatches)
             X,y=temp
               
             clf.partial_fit(X,y,np.unique(([0,1])))
@@ -121,10 +123,13 @@ def worker_f(name,clf,parts,e):
             pub_x.put(Xi)
             print(w_id,"Sended Xi")
             E=get_init() # get E from coordinator
+            if E is False: 
+                pub_incr.put(-1)
+                break
         print(w_id,"Start of round") 
         clf.coef_[0]=E[0]
         clf.intercept_[0]=E[1]
-        S_prev[0]=list(E[0])
+        S_prev[0]= np.array(list(E[0]))
         S_prev[1]=E[1]
         #begin of round...
         #FIXME do not send message every time & check rounds and subrounds 
@@ -149,24 +154,23 @@ def worker_f(name,clf,parts,e):
                         break
                     X_chunk, y_chunk=load
                     count_chunks+=1
-                    print(w_id,"Continue to next chunk...")
+                    #print(w_id,"Continue to next chunk...",count_chunks)
                     minibatches=0
                     temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
+                #print(w_id,"Continue to next minibatch",minibatches)
                 if flag==False:
                     pub_incr.put(-1)
-                    break
+                    # break
                 else:
-                    print("Into else")
                     minibatches+=1
                     X,y=temp
                     clf.partial_fit(X,y,np.unique([0,1]))
-                    coef=clf.coef_[0]
-                    interc=clf.intercept_[0]
-                    Si[0]=coef
-                    Si[1]=interc
+                    # coef=clf.coef_[0]
+                    # interc=clf.intercept_[0]
+                    Si[0]=clf.coef_[0]
+                    Si[1]=clf.intercept_[0]
                     Xi=[Si[0]-S_prev[0],Si[1]-S_prev[1]]
                     c_th=0 
-
                     if th!=0: #avoid division with 0 if th=0 c_th=0
                         c_th=(f(Xi,E,e)-zi)/th
                     ci_new=max(ci,math.floor(c_th))
@@ -178,17 +182,17 @@ def worker_f(name,clf,parts,e):
             pub_f.put(f(Xi,E,e))
             print(w_id,"Sended Fi") 
             print(w_id,"End of subround")
-            if flag==False:
-                break
+            # if flag==False:
+            #     break
             
             #end of subround...
 
         # end of round
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")
-        if flag==False:
-            break    
+        # if flag==False:
+        #     break    
     print(w_id,"Ended...")
     #print("Chunks",count_chunks)
-    return Si
+    return clf
 

@@ -71,7 +71,7 @@ def coordinator(n_workers,E,n_rounds,e):
         return "ok"
 
     #____________________________Start coordinator_________________________________
-    if check_subcribers(pub_init,n_workers)=="end":return None
+    
     n_subs=0
     k=n_workers
     th=0
@@ -83,8 +83,9 @@ def coordinator(n_workers,E,n_rounds,e):
     
     print("Coo started")
     
-
+    if check_subcribers(pub_init,n_workers)=="end":return None
     if E is None: #if E=0 we need to update E
+        #if check_subcribers(pub_init,n_workers)=="end":return None
         pub_init.put(None)
         print("Warmup...Coo Sended E=0...") 
         drifts=get_xi(k) #get local drifts (Xi's)
@@ -93,9 +94,11 @@ def coordinator(n_workers,E,n_rounds,e):
         e1=sum_xi[0]/k
         e2=sum_xi[1]/k
         E=[e1,e2]
+        #if check_subcribers(pub_init,n_workers)=="end":return None
         pub_init.put(E)
         print("Coo Sended E")
     else:
+        #if check_subcribers(pub_init,n_workers)=="end":return None
         pub_init.put(E)
         print("Coo Sended E")
     
@@ -125,16 +128,9 @@ def coordinator(n_workers,E,n_rounds,e):
                 k=k-1
                 if k==0:
                     flag=False 
-                    break
-                
+                    break   
             c=c+incr
 			#subrounds ended...
-
-        if flag==False: #if false chunks are out end future
-            #if check_subcribers(pub_endsub,k)=="end":return
-            pub_endsub.put(0)
-            print("Coo Sended endofSub..")
-            break
 
         #if check_subcribers(pub_endsub,k)=="end":return
         pub_endsub.put(0) #let workers know that subrounds ended
@@ -143,9 +139,14 @@ def coordinator(n_workers,E,n_rounds,e):
         print("Coo Received fi's")
         y=add_f(fis)
         print("y",y)
+        if flag==False: #if false chunks are out end future
+            #if check_subcribers(pub_endsub,k)=="end":return
+            #pub_endsub.put(0)
+            print("Coo Sended endofSub..")
+            break
 	#rounds ended...
 
-    if check_subcribers(pub_endr,k)=="end":return None
+    #if check_subcribers(pub_endr,k)=="end":return None
     pub_endr.put(0) #let workers know that rounds ended 
     print("Coo Sended endofround..")
     drifts=get_xi(k) #get local drifts (Xi's)
@@ -157,7 +158,9 @@ def coordinator(n_workers,E,n_rounds,e):
     e2=E[1]+(sum_xi[1]/k)
     E=[e1,e2]
     n_rounds+=1
-    print("Coo ended...")
+    print("Coo ended...",E)
+    if flag==False:
+        time.sleep(5)
     return E,n_rounds,n_subs,k
 
 
