@@ -13,8 +13,11 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name):
 
 
     for i in range(len(Acc)):
-
+        text_pos=1+i*0.1
         plt.plot(time_stamps[i], Acc[i], label=labels[i], marker='o')
+        plt.annotate(Acc[i][-1], xy=(time_stamps[i][-1], Acc[i][-1]), xytext=(time_stamps[i][-1]-text_pos, Acc[i][-1]-1),
+            arrowprops=dict(arrowstyle='simple'),
+            )
     plt.xlabel("Time(s)")
     plt.ylabel("Accuracy")
     plt.title('1.1 Accuracy/Time for distributed')
@@ -38,7 +41,11 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name):
 
     plt.subplot(224)
     for i in range(len(Acc_real)):
+        text_pos=1+i*0.1
         plt.plot(real_time[i],Acc_real[i],label=r_labels[i])
+        plt.annotate(Acc_real[i][-1], xy=(real_time[i][-1], Acc_real[i][-1]), xytext=(real_time[i][-1]-text_pos, Acc_real[i][-1]-1),
+            arrowprops=dict(arrowstyle='simple'),
+            )
     
     plt.xlabel("Time(s)")
     plt.ylabel("Accuracy")

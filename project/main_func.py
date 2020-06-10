@@ -28,13 +28,14 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     clf = linear_model.SGDClassifier(shuffle=False)
     clf_results=[clf]*(len(w)-1)
     start_time=time.time()
+    start_rounds=0
     for p in range(4):
         random_assign(len(w)-1,chunks)
 
         for i in range(len(w)-1):
             worker.append(client.submit(worker_f,i,clf_results[i],n_minibatch,e,workers=w[i+1]))
         #TAG Changed the call of random assign + added a for loop + return the clf and feed it again + print after finished
-        coo=client.submit(coordinator,len(w)-1,E,0,e,workers=w[0])
+        coo=client.submit(coordinator,len(w)-1,E,start_rounds,e,workers=w[0])
         print("In progress...")
         
         while True:
@@ -55,7 +56,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                         del coo
                         status_l=[i.status for i in worker]
                         n_workers=result[3]
-                        coo= client.submit(coordinator,n_workers,E,n_rounds,e,workers=w[0]) 
+                        coo= client.submit(coordinator,n_workers,E,n_rounds,e,workers=w[0])
                         print("coo",result[1:])
                         # here we will predict
                         acc=pred(E,clf,X_test,y_test)
@@ -65,6 +66,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                     end_time=time.time()
                     result=coo.result()
                     E=result[0]
+                    n_rounds=result[1]
                     if result is None:
                         break
                     else:
@@ -78,7 +80,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
             else:
                 break
                 #return
-        
+        start_rounds=n_rounds
         print("End of chunks...")
         status_l=[w.status for w in worker]
         clf_results=[x.result() for x in worker]

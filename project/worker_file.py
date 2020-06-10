@@ -32,28 +32,34 @@ def worker_f(name,clf,parts,e):
     def get_init():
         w_id= get_worker().name    
         try:
-            init=sub_init.get(timeout=150)
+            s=time.time()
+            print(w_id,"waits to receive E...")
+            init=sub_init.get(timeout=1000)
             print(w_id,"Received E")
             return init
         except TimeoutError:
-            print(w_id,'Error E not received')
+            t=time.time()
+            print(w_id,'Error E not received',t-s)
             return False
 
     #get theta from cordinator   
     def get_th():
         w_id= get_worker().name    
         try:
-            th=sub_th.get(timeout=100)
+            s=time.time()
+            print(w_id,"waits to receive th...")
+            th=sub_th.get(timeout=1000)
             print(w_id,"Received theta")
             return th
         except TimeoutError:
-            print(w_id,'Theta aknowlegment not received')
+            t=time.time()
+            print(w_id,'Theta aknowlegment not received',t-s)
             return None
 
     #get aknowlegment for continue or stop the rounds    
     def get_endr():
         try:
-            endr=sub_endr.get(timeout=5)
+            endr=sub_endr.get(timeout=2)
             print(w_id,'End of round received')
             return endr
         except TimeoutError:
@@ -62,7 +68,7 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the subrounds
     def get_endsub():
         try:
-            endsub=sub_endsub.get(timeout=5)
+            endsub=sub_endsub.get(timeout=1)
             print(w_id,'End of subround received')
             return endsub
         except TimeoutError:
@@ -120,6 +126,7 @@ def worker_f(name,clf,parts,e):
             clf.partial_fit(X,y,np.unique(([0,1])))
             Si = [clf.coef_[0],clf.intercept_[0]]
             Xi=[clf.coef_[0],clf.intercept_[0]]
+            while len(pub_x.subscribers)!=1: time.sleep(0.01)
             pub_x.put(Xi)
             print(w_id,"Sended Xi")
             E=get_init() # get E from coordinator
@@ -179,6 +186,7 @@ def worker_f(name,clf,parts,e):
                         pub_incr.put(incr)
                         ci=ci_new
                         print(w_id,"Sended...",incr)
+            while len(pub_f.subscribers)!=1: time.sleep(0.01)
             pub_f.put(f(Xi,E,e))
             print(w_id,"Sended Fi") 
             print(w_id,"End of subround")
@@ -188,6 +196,7 @@ def worker_f(name,clf,parts,e):
             #end of subround...
 
         # end of round
+        while len(pub_x.subscribers)!=1: time.sleep(0.01)
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")
         # if flag==False:

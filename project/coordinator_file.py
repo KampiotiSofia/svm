@@ -37,9 +37,11 @@ def coordinator(n_workers,E,n_rounds,e):
         fis=[]
         try:
             fi=sub_f.get()
+            print("Coo received 1 Fi")
             fis.append(fi)
             for i in range(n_workers-1):
                 fi=sub_f.get() 
+                print("Coo received",i+2,"fi") 
                 fis.append(fi)
             return fis
         except:
@@ -51,9 +53,11 @@ def coordinator(n_workers,E,n_rounds,e):
         drifts=[]
         try:
             xi=sub_x.get()
+            print("Coo received 1 xi",len(xi))
             drifts.append(xi)
             for i in range(n_workers-1):
-                xi=sub_x.get() 
+                xi=sub_x.get()
+                print("Coo received",i+2,"xi",len(xi)) 
                 drifts.append(xi)
             return drifts
         except:
@@ -65,8 +69,10 @@ def coordinator(n_workers,E,n_rounds,e):
         if n_workers==0:
             print("No workers left")
             return "end"
-        while len(pub.subscribers)!=n_workers: #if not all workers subscribe sleep
+        
+        while len(pub.subscribers)<n_workers: #if not all workers subscribe sleep
                 time.sleep(0.01)
+        
         print("OK Check")
         return "ok"
 
@@ -158,7 +164,7 @@ def coordinator(n_workers,E,n_rounds,e):
     e2=E[1]+(sum_xi[1]/k)
     E=[e1,e2]
     n_rounds+=1
-    print("Coo ended...",E)
+    print("Coo ended...")
     if flag==False:
         time.sleep(5)
     return E,n_rounds,n_subs,k
