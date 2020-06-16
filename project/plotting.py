@@ -23,7 +23,7 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
         plt.plot(time_stamps[i], Acc[i], label=labels[i], marker='o',markersize=4)
         if i==count:
             plt.annotate(round(Acc[i][-1],3),size=10,xy=(time_stamps[i][-1], Acc[i][-1]),
-            xytext=(time_stamps[i][-1]-100, Acc[i][-1]-0.02),arrowprops=dict(arrowstyle='simple',edgecolor='red',facecolor='red'))
+            xytext=(time_stamps[i][-1]-300, Acc[i][-1]-0.02),arrowprops=dict(arrowstyle='simple',edgecolor='red',facecolor='red'))
     plt.xlabel("Time(s)")
     plt.ylabel("Accuracy")
     title='1.1 Accuracy/Time for different '+kind+' values'

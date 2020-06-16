@@ -170,7 +170,6 @@ def load_np(n1,n2,i):
         y=np.load("np_arrays/chunks/"+n2[i]+".npy")
         return X,y
     except:
-        print("No chunks left")
         return None
 
 
