@@ -32,34 +32,30 @@ def worker_f(name,clf,parts,e):
     def get_init():
         w_id= get_worker().name    
         try:
-            s=time.time()
             print(w_id,"waits to receive E...")
-            init=sub_init.get(timeout=1000)
+            init=sub_init.get(timeout=100)
             print(w_id,"Received E")
             return init
         except TimeoutError:
-            t=time.time()
-            print(w_id,'Error E not received',t-s)
+            print(w_id,'Error E not received')
             return False
 
     #get theta from cordinator   
     def get_th():
         w_id= get_worker().name    
         try:
-            s=time.time()
             print(w_id,"waits to receive th...")
-            th=sub_th.get(timeout=1000)
+            th=sub_th.get(timeout=100)
             print(w_id,"Received theta")
             return th
         except TimeoutError:
-            t=time.time()
-            print(w_id,'Theta aknowlegment not received',t-s)
+            print(w_id,'Theta aknowlegment not received')
             return None
 
     #get aknowlegment for continue or stop the rounds    
     def get_endr():
         try:
-            endr=sub_endr.get(timeout=2)
+            endr=sub_endr.get(timeout=1)
             print(w_id,'End of round received')
             return endr
         except TimeoutError:
@@ -68,11 +64,13 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the subrounds
     def get_endsub():
         try:
-            endsub=sub_endsub.get(timeout=1)
+            endsub=sub_endsub.get(timeout=0.5)
             print(w_id,'End of subround received')
             return endsub
         except TimeoutError:
             return None
+    
+    
 
 
     #                       ____Start of worker____
@@ -190,8 +188,8 @@ def worker_f(name,clf,parts,e):
             pub_f.put(f(Xi,E,e))
             print(w_id,"Sended Fi") 
             print(w_id,"End of subround")
-            # if flag==False:
-            #     break
+            if flag==False:
+                break
             
             #end of subround...
 
@@ -199,8 +197,8 @@ def worker_f(name,clf,parts,e):
         while len(pub_x.subscribers)!=1: time.sleep(0.01)
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")
-        # if flag==False:
-        #     break    
+        if flag==False:
+            break    
     print(w_id,"Ended...")
     #print("Chunks",count_chunks)
     return clf

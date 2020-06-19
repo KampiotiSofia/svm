@@ -51,11 +51,14 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                         break
                     else:
                         time_stamps.append(end_time-start_time)
+                        n_workers=result[3]
+                        if n_workers==0:
+                            break
+                        del coo
                         E=result[0]
                         n_rounds=result[1]
-                        del coo
                         status_l=[i.status for i in worker]
-                        n_workers=result[3]
+                        
                         coo= client.submit(coordinator,n_workers,E,n_rounds,e,workers=w[0])
                         print("coo",result[1:])
                         # here we will predict
