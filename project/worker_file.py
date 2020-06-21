@@ -136,6 +136,7 @@ def worker_f(name,clf,parts,e):
         clf.intercept_[0]=E[1]
         S_prev[0]= np.array(list(E[0]))
         S_prev[1]=E[1]
+        Xi=[[0],0]
         #begin of round...
         #FIXME do not send message every time & check rounds and subrounds 
         while get_endr()==None:
@@ -145,8 +146,8 @@ def worker_f(name,clf,parts,e):
             th=get_th() #get theta
             if th==None:
                 pub_incr.put(-1)
-                flag=False 
-                break
+                print(w_id,"Ended...")
+                return clf
             print(w_id,"Received start of subround")
             #begin of subround...
             while get_endsub()==None:
@@ -195,7 +196,7 @@ def worker_f(name,clf,parts,e):
             
             #end of subround...
 
-        # end of round
+        # # end of round
         while len(pub_x.subscribers)!=1: time.sleep(0.01)
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")

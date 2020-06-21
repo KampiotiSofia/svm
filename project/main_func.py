@@ -68,12 +68,13 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                 if coo.status=='finished':
                     end_time=time.time()
                     result=coo.result()
-                    E=result[0]
-                    n_rounds=result[1]
+                    
                     if result is None:
                         break
                     else:
                         #no chunks workers ended
+                        E=result[0]
+                        n_rounds=result[1]
                         time_stamps.append(end_time-start_time)
                         print("coo",result[1:])
                         # here we will predict

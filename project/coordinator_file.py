@@ -142,12 +142,11 @@ def coordinator(n_workers,E,n_rounds,e):
             if incr<0: # works as a flag to let coordinator know that chunks are out
                 neg+=1
                 k=k-1
-                if k==0 or k==1:
-                    flag=False 
-                    break   
+                
+                if k<4: break          
             c=c+incr
 			#subrounds ended...
-
+        if k<=0: flag=False
         pub_endsub.put(0) #let workers know that subrounds ended
         print("Coo Sended endofSub... num_workers",k) 
         fis=get_fi(n_workers) #get F(Xi)'s from workers
