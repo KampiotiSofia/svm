@@ -33,7 +33,7 @@ def worker_f(name,clf,parts,e):
         w_id= get_worker().name    
         try:
             print(w_id,"waits to receive E...")
-            init=sub_init.get(timeout=100)
+            init=sub_init.get(timeout=20)
             print(w_id,"Received E")
             return init
         except TimeoutError:
@@ -45,7 +45,7 @@ def worker_f(name,clf,parts,e):
         w_id= get_worker().name    
         try:
             print(w_id,"waits to receive th...")
-            th=sub_th.get(timeout=100)
+            th=sub_th.get(timeout=20)
             print(w_id,"Received theta")
             return th
         except TimeoutError:
@@ -55,7 +55,7 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the rounds    
     def get_endr():
         try:
-            endr=sub_endr.get(timeout=1)
+            endr=sub_endr.get(timeout=3)
             print(w_id,'End of round received')
             return endr
         except TimeoutError:
@@ -144,6 +144,8 @@ def worker_f(name,clf,parts,e):
             Xi=[[0],0]
             th=get_th() #get theta
             if th==None:
+                pub_incr.put(-1)
+                flag=False 
                 break
             print(w_id,"Received start of subround")
             #begin of subround...
@@ -165,7 +167,7 @@ def worker_f(name,clf,parts,e):
                 #print(w_id,"Continue to next minibatch",minibatches)
                 if flag==False:
                     pub_incr.put(-1)
-                    # break
+                    break
                 else:
                     minibatches+=1
                     X,y=temp

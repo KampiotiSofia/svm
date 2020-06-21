@@ -50,10 +50,10 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                     if result is None:
                         break
                     else:
-                        time_stamps.append(end_time-start_time)
                         n_workers=result[3]
                         if n_workers==0:
                             break
+                        time_stamps.append(end_time-start_time)
                         del coo
                         E=result[0]
                         n_rounds=result[1]

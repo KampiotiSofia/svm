@@ -36,39 +36,39 @@ def coordinator(n_workers,E,n_rounds,e):
     # get fi's from all workers
     def get_fi(n_workers):  
         fis=[]
-        try:
-            fi=sub_f.get(timeout=10)
-            print("Coo received 1 Fi")
-            fis.append(fi)
-            print("n_workers=====",n_workers)
-            for i in range(n_workers-1):
-                print("try to get fis")
-                fi=sub_f.get(timeout=10) 
-                print("Coo received",i+2,"fi") 
+        
+        # fi=sub_f.get(timeout=5)
+        # print("Coo received 1 Fi")
+        # fis.append(fi)
+        print("try to get fis workers:",n_workers)
+        for i in range(n_workers):
+            try:
+                fi=sub_f.get(timeout=5) 
+                print("Coo received",i+1,"fi") 
                 fis.append(fi)
-            return fis
-        except TimeoutError:
-            print('Lost worker/workers num=',len(fis))
-            return fis
+            except TimeoutError:
+                print('Fis Lost worker/workers num=',len(fis))
+                break
+        return fis
+        
 
     # get xi's from all workers
     def get_xi(n_workers):  
         drifts=[]
-        try:
-            
-            xi=sub_x.get(timeout=2)
-            print("Coo received 1 xi")
-            drifts.append(xi)
-            print("n_workers=====",n_workers)
-            for i in range(n_workers-1):
-                print("try to get xi")
-                xi=sub_x.get(timeout=2)
-                print("Coo received",i+2,"xi") 
+        # xi=sub_x.get(timeout=5)
+        # print("Coo received 1 xi")
+        # drifts.append(xi)
+        print("try to get xi workers:",n_workers)
+        for i in range(n_workers):
+            try:
+                xi=sub_x.get(timeout=5)
+                print("Coo received",i+1,"xi") 
                 drifts.append(xi)
-            return drifts
-        except TimeoutError:
-            print('Lost worker/workers num=',len(drifts))
-            return drifts
+            except TimeoutError:
+                print('Lost worker/workers')
+                break
+        print("Num of workers",len(drifts))
+        return drifts
 
     def check_subcribers(pub,n_workers):
         print("Check...")
@@ -76,8 +76,8 @@ def coordinator(n_workers,E,n_rounds,e):
             print("No workers left")
             return "end"
         
-        while len(pub.subscribers)<n_workers: #if not all workers subscribe sleep
-                time.sleep(0.01)
+        # while len(pub.subscribers)<n_workers: #if not all workers subscribe sleep
+        #         time.sleep(0.01)
         
         print("OK Check")
         return "ok"
@@ -97,7 +97,8 @@ def coordinator(n_workers,E,n_rounds,e):
     
     if check_subcribers(pub_init,k)=="end":return None
     if E is None: #if E=0 we need to update E
-        #if check_subcribers(pub_init,n_workers)=="end":return None
+        while len(pub_init.subscribers)<n_workers: #if not all workers subscribe sleep
+            time.sleep(0.01)
         pub_init.put(None)
         print("Warmup...Coo Sended E=0...") 
         drifts=get_xi(n_workers) #get local drifts (Xi's)
@@ -134,21 +135,25 @@ def coordinator(n_workers,E,n_rounds,e):
         fis=[]
         
 		#start of the subround...
-
+        neg=0
         while c<k: 
+            
             incr=get_incr() #Get increments
             if incr<0: # works as a flag to let coordinator know that chunks are out
+                neg+=1
                 k=k-1
-                if k==0:
+                if k==0 or k==1:
                     flag=False 
                     break   
             c=c+incr
 			#subrounds ended...
 
-        #if check_subcribers(pub_endsub,k)=="end":return
         pub_endsub.put(0) #let workers know that subrounds ended
         print("Coo Sended endofSub... num_workers",k) 
         fis=get_fi(n_workers) #get F(Xi)'s from workers
+        if len(fis)==0: return None
+        if len(fis)<k:
+            k=len(fis)-neg
         print("Coo Received fi's workers=",k)
         
         y=add_f(fis)
@@ -161,9 +166,12 @@ def coordinator(n_workers,E,n_rounds,e):
     pub_endr.put(0) #let workers know that rounds ended 
     
     print("Coo Sended endofround... num_workers",k)
-    drifts=get_xi(n_workers) #get local drifts (Xi's)
-    
+    drifts=get_xi(len(fis)) #get local drifts (Xi's)
+    if len(drifts)<k:
+        k=len(drifts)-neg
     print("Coo Received xi's workers=",k)
+    if len(drifts)==0: return None
+    
     sum_xi=add_x(drifts)
     e1=E[0]+(sum_xi[0]/len(drifts))
     e2=E[1]+(sum_xi[1]/len(drifts))
