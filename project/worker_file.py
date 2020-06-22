@@ -45,7 +45,7 @@ def worker_f(name,clf,parts,e):
         w_id= get_worker().name    
         try:
             print(w_id,"waits to receive th...")
-            th=sub_th.get(timeout=20)
+            th=sub_th.get(timeout=1)
             print(w_id,"Received theta")
             return th
         except TimeoutError:
@@ -55,7 +55,7 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the rounds    
     def get_endr():
         try:
-            endr=sub_endr.get(timeout=3)
+            endr=sub_endr.get(timeout=1)
             print(w_id,'End of round received')
             return endr
         except TimeoutError:
@@ -64,7 +64,7 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the subrounds
     def get_endsub():
         try:
-            endsub=sub_endsub.get(timeout=0.5)
+            endsub=sub_endsub.get(timeout=1)
             print(w_id,'End of subround received')
             return endsub
         except TimeoutError:
@@ -144,10 +144,12 @@ def worker_f(name,clf,parts,e):
             ci=0
             Xi=[[0],0]
             th=get_th() #get theta
+            #TAG 1 change 
             if th==None:
-                pub_incr.put(-1)
-                print(w_id,"Ended...")
-                return clf
+                continue
+                # pub_incr.put(-1)
+                # print(w_id,"Ended...")
+                # return clf
             print(w_id,"Received start of subround")
             #begin of subround...
             while get_endsub()==None:
@@ -167,7 +169,8 @@ def worker_f(name,clf,parts,e):
                     temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
                 #print(w_id,"Continue to next minibatch",minibatches)
                 if flag==False:
-                    pub_incr.put(-1)
+
+                    #TAG 2 change removed pub_incr.put(-1)
                     break
                 else:
                     minibatches+=1
@@ -201,7 +204,10 @@ def worker_f(name,clf,parts,e):
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")
         if flag==False:
-            break    
+            break
+    #TAG 3 change insert put -1 here
+    while len(pub_x.subscribers)!=1: time.sleep(0.01)
+    pub_incr.put(-1)    
     print(w_id,"Ended...")
     #print("Chunks",count_chunks)
     return clf

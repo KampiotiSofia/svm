@@ -61,7 +61,7 @@ def coordinator(n_workers,E,n_rounds,e):
         print("try to get xi workers:",n_workers)
         for i in range(n_workers):
             try:
-                xi=sub_x.get(timeout=5)
+                xi=sub_x.get(timeout=6)
                 print("Coo received",i+1,"xi") 
                 drifts.append(xi)
             except TimeoutError:
@@ -76,8 +76,8 @@ def coordinator(n_workers,E,n_rounds,e):
             print("No workers left")
             return "end"
         
-        # while len(pub.subscribers)<n_workers: #if not all workers subscribe sleep
-        #         time.sleep(0.01)
+        while len(pub.subscribers)<n_workers: #if not all workers subscribe sleep
+                time.sleep(0.01)
         
         print("OK Check")
         return "ok"
@@ -140,19 +140,30 @@ def coordinator(n_workers,E,n_rounds,e):
             
             incr=get_incr() #Get increments
             if incr<0: # works as a flag to let coordinator know that chunks are out
+                incr=0
                 neg+=1
                 k=k-1
-                
-                if k<4: break          
+                if k==0:
+                    flag=False
+                    break
+                #TAG 1 change removed k<4
+                # if k<4: break          
             c=c+incr
 			#subrounds ended...
-        if k<=0: flag=False
+        # if k==1:
+        #     flag=False
+        
         pub_endsub.put(0) #let workers know that subrounds ended
         print("Coo Sended endofSub... num_workers",k) 
-        fis=get_fi(n_workers) #get F(Xi)'s from workers
-        if len(fis)==0: return None
+        fis=get_fi(k) #get F(Xi)'s from workers
+        
         if len(fis)<k:
+            #TAG 2 change
             k=len(fis)-neg
+        if len(fis)==0 or k<=0: 
+            pub_endsub.put(0)
+            pub_endr.put(0)
+            return None
         print("Coo Received fi's workers=",k)
         
         y=add_f(fis)
@@ -166,6 +177,7 @@ def coordinator(n_workers,E,n_rounds,e):
     
     print("Coo Sended endofround... num_workers",k)
     drifts=get_xi(len(fis)) #get local drifts (Xi's)
+    #TAG 3 change
     if len(drifts)<k:
         k=len(drifts)-neg
     print("Coo Received xi's workers=",k)
@@ -177,8 +189,8 @@ def coordinator(n_workers,E,n_rounds,e):
     E=[e1,e2]
     n_rounds+=1
     print("Coo ended...")
-    if flag==False:
-        time.sleep(5)
+    # if flag==False:
+    #     time.sleep(1)
     return E,n_rounds,n_subs,k
 
 
@@ -208,7 +220,6 @@ def add_coef(array):
 
 #add all xi's received from workers
 def add_x(l):
-    
     coef=[]
     for pair in l:
         coef.append(pair[0])

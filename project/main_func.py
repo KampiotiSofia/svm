@@ -51,13 +51,15 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                         break
                     else:
                         n_workers=result[3]
+                        status_l=[i.status for i in worker]
+                        if status_l.count('pending')< n_workers:
+                            n_workers=status_l.count('pending')
                         if n_workers==0:
                             break
                         time_stamps.append(end_time-start_time)
                         del coo
                         E=result[0]
                         n_rounds=result[1]
-                        status_l=[i.status for i in worker]
                         
                         coo= client.submit(coordinator,n_workers,E,n_rounds,e,workers=w[0])
                         print("coo",result[1:])
