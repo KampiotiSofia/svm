@@ -97,9 +97,9 @@ def worker_f(name,clf,parts,e):
     
     while flag==True: #while this flag stays true there are chunks
         E=get_init() # get E from coordinator
-        if E is False: 
-            pub_incr.put(-1) 
-            break
+        if E is False:
+            pub_incr.put(-1)   
+            return clf
         
         if E is None: #if E=0 compute Xi and return Xi to update E
             #TODO make it prettier
@@ -112,6 +112,7 @@ def worker_f(name,clf,parts,e):
                 if load is None:
                     print(w_id,"End of chunks")
                     flag=False 
+                    pub_incr.put(-1)  
                     break
                 X_chunk, y_chunk=load
                 count_chunks+=1
@@ -128,8 +129,8 @@ def worker_f(name,clf,parts,e):
             pub_x.put(Xi)
             print(w_id,"Sended Xi")
             E=get_init() # get E from coordinator
-            if E is False: 
-                pub_incr.put(-1)
+            if E is False:
+                pub_incr.put(-1)   
                 break
         print(w_id,"Start of round") 
         clf.coef_[0]=E[0]
@@ -142,14 +143,11 @@ def worker_f(name,clf,parts,e):
         while get_endr()==None:
             
             ci=0
-            Xi=[[0],0]
+            # Xi=[[0],0]
             th=get_th() #get theta
-            #TAG 1 change 
             if th==None:
+                Xi=[[0],0]
                 continue
-                # pub_incr.put(-1)
-                # print(w_id,"Ended...")
-                # return clf
             print(w_id,"Received start of subround")
             #begin of subround...
             while get_endsub()==None:
@@ -164,13 +162,12 @@ def worker_f(name,clf,parts,e):
                         break
                     X_chunk, y_chunk=load
                     count_chunks+=1
-                    #print(w_id,"Continue to next chunk...",count_chunks)
+                    # print(w_id,"Continue to next chunk...",count_chunks)
                     minibatches=0
                     temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
-                #print(w_id,"Continue to next minibatch",minibatches)
+                # print(w_id,"Continue to next minibatch",minibatches)
                 if flag==False:
-
-                    #TAG 2 change removed pub_incr.put(-1)
+                      
                     break
                 else:
                     minibatches+=1
@@ -200,14 +197,17 @@ def worker_f(name,clf,parts,e):
             #end of subround...
 
         # # end of round
-        while len(pub_x.subscribers)!=1: time.sleep(0.01)
+        # while len(pub_x.subscribers)!=1: time.sleep(0.01)
+        pub_incr.put(-1)
+        if all([v==0 for v in Xi[0]]):
+            print(w_id,"ZERO XI") 
+            break
+        
         pub_x.put(Xi) # send Xi
         print(w_id,"Sended Xi")
         if flag==False:
             break
-    #TAG 3 change insert put -1 here
-    while len(pub_x.subscribers)!=1: time.sleep(0.01)
-    pub_incr.put(-1)    
+      
     print(w_id,"Ended...")
     #print("Chunks",count_chunks)
     return clf

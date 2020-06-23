@@ -102,12 +102,12 @@ def coordinator(n_workers,E,n_rounds,e):
         pub_init.put(None)
         print("Warmup...Coo Sended E=0...") 
         drifts=get_xi(n_workers) #get local drifts (Xi's)
-        if len(drifts)!=k: k=len(drifts)
+        if len(drifts)<k: k=len(drifts) #TAG len(drifts)!=k 
         print("Coo received xi's...workers=",k)
         
         sum_xi=add_x(drifts)
-        e1=sum_xi[0]/k
-        e2=sum_xi[1]/k
+        e1=sum_xi[0]/len(drifts)
+        e2=sum_xi[1]/len(drifts)
         E=[e1,e2]
         #if check_subcribers(pub_init,n_workers)=="end":return None
         pub_init.put(E)
@@ -146,22 +146,17 @@ def coordinator(n_workers,E,n_rounds,e):
                 if k==0:
                     flag=False
                     break
-                #TAG 1 change removed k<4
                 # if k<4: break          
             c=c+incr
 			#subrounds ended...
-        # if k==1:
-        #     flag=False
         
         pub_endsub.put(0) #let workers know that subrounds ended
         print("Coo Sended endofSub... num_workers",k) 
-        fis=get_fi(k) #get F(Xi)'s from workers
+        fis=get_fi(n_workers) #get F(Xi)'s from workers
         
         if len(fis)<k:
-            #TAG 2 change
-            k=len(fis)-neg
-        if len(fis)==0 or k<=0: 
-            pub_endsub.put(0)
+            k=len(fis)
+        if len(fis)==0:
             pub_endr.put(0)
             return None
         print("Coo Received fi's workers=",k)
@@ -177,20 +172,21 @@ def coordinator(n_workers,E,n_rounds,e):
     
     print("Coo Sended endofround... num_workers",k)
     drifts=get_xi(len(fis)) #get local drifts (Xi's)
-    #TAG 3 change
+   
     if len(drifts)<k:
-        k=len(drifts)-neg
+        k=len(drifts)
     print("Coo Received xi's workers=",k)
     if len(drifts)==0: return None
-    
+    print("DRIFTS\n",[l[0][:10] for l in drifts],"Intercept\n",[l[1] for l in drifts])
     sum_xi=add_x(drifts)
-    e1=E[0]+(sum_xi[0]/len(drifts))
-    e2=E[1]+(sum_xi[1]/len(drifts))
+    print("SUM", sum_xi[0][:10],sum_xi[1])
+    #TAG change
+    e1=E[0]+(sum_xi[0]/len(drifts)) #len(drifts)
+    e2=E[1]+(sum_xi[1]/len(drifts)) #len(drifts)
     E=[e1,e2]
     n_rounds+=1
     print("Coo ended...")
-    # if flag==False:
-    #     time.sleep(1)
+    # time.sleep(1)
     return E,n_rounds,n_subs,k
 
 
