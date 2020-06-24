@@ -3,6 +3,7 @@
 import numpy as np
 import time
 import sys
+from dask.distributed import Pub, Sub,TimeoutError
 from sklearn import linear_model
 from sklearn import metrics
 from coordinator_file import coordinator
@@ -15,7 +16,10 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     E=None
     Acc=[]
     worker=[]
+    n_rounds=0
     time_stamps=[]
+    total_time=[]
+    total_acc=[]
     
     #make a dataset and save training X and y ,give sample number and future number
     if new=='yes':
@@ -29,11 +33,14 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     clf_results=[clf]*(len(w)-1)
     start_time=time.time()
     start_rounds=0
-    for p in range(4):
+    for p in range(2):
+        s_run_time=time.time()
         random_assign(len(w)-1,chunks)
 
         for i in range(len(w)-1):
             worker.append(client.submit(worker_f,i,clf_results[i],n_minibatch,e,workers=w[i+1]))
+
+        
         #TAG Changed the call of random assign + added a for loop + return the clf and feed it again + print after finished
         coo=client.submit(coordinator,len(w)-1,E,start_rounds,e,workers=w[0])
         print("In progress...")
@@ -43,8 +50,10 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
             time.sleep(1)
             c=check_worker(worker)
             if  c=="ok":
+
                 #workers still running 
                 if coo.status=='finished':
+                    
                     end_time=time.time()
                     result=coo.result()
                     if result is None:
@@ -52,6 +61,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
                     else:
                         n_workers=result[3]
                         status_l=[i.status for i in worker]
+                        
                         if status_l.count('pending')< n_workers:
                             n_workers=status_l.count('pending')
                         if n_workers==0:
@@ -86,6 +96,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
             else:
                 break
                 #return
+        t_run_time=time.time()
         start_rounds=n_rounds
         print("End of chunks...")
         status_l=[w.status for w in worker]
@@ -96,9 +107,17 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
         del coo
         for f in worker: del f
         worker=[]
+        total_time.append(t_run_time-s_run_time)
+        total_acc.append(Acc[-1])
+        name1="np_arrays/total_time"+str(len(w)-1)
+        name2="np_arrays/total_acc"+str(len(w)-1)
+        
         time.sleep(5)
-
+    np.save(name1,total_time)
+    np.save(name2,total_acc)
     return Acc,n_rounds,time_stamps
+
+
 
 def real_partial(minibatches):
     print("Start...")
@@ -106,11 +125,14 @@ def real_partial(minibatches):
     count_chunks=0
     E=[]
     Acc=[]
+    f_acc=[]
+    t=[]
     X_test=np.load("np_arrays/X_test.npy")
     y_test=np.load("np_arrays/y_test.npy")
 
     # walk through all chunks and train a local model
-    for i in range(4):
+    for i in range(2):
+        s_run_time=time.time()
         print("----------------------------------------------\n")
         while True:
             if count_chunks>=100:
@@ -127,6 +149,9 @@ def real_partial(minibatches):
             E.append(clf.coef_[0])
             Acc.append(metrics.accuracy_score(y_test, y_pred))
             sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
+        t_run_time=time.time()
         print("Ended",i)
         count_chunks=0
-    return E,Acc
+        t.append(t_run_time-s_run_time)
+        f_acc.append(Acc[-1])
+    return t,Acc,f_acc

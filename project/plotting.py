@@ -101,3 +101,48 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
     plt.savefig('B_'+name)
     plt.show()
     return
+
+def plot_workers(l,centr_time,centr_acc):
+    t=[]
+    a=[]
+    try:
+        for i in l:
+            name1="np_arrays/total_time"+str(i)+".npy"
+            name2="np_arrays/total_acc"+str(i)+".npy"
+            t.append(np.load(name1))
+            a.append(np.load(name2))
+        t1=[i[0] for i in t]
+        t2=[i[1] for i in t]
+        a1=[i[0] for i in a]
+        a2=[i[1] for i in a]
+
+        jtplot.style(theme='grade3')
+        
+        figure(figsize=(15,15))
+        plt.subplot(221)
+        plt.plot(l,t1, label='1st pass', marker='x',markersize=4)
+        plt.plot(l,t2, label='2nd pass', marker='x',markersize=4)
+        plt.axhline(y=centr_time[0],linestyle='-',label='centr 1')
+        plt.axhline(y=centr_time[1],linestyle='-',label='centr 2')
+        plt.xlabel("Number of workers")
+        plt.ylabel("Time (s)")
+        title='Total time for 1 and 2 passes on the dataset to number of workers'
+        plt.title(title)
+        plt.legend()
+
+        plt.subplot(222)
+        plt.plot(l,a1, label='1st pass', marker='x',markersize=4)
+        plt.plot(l,a2, label='2nd pass', marker='x',markersize=4)
+        plt.axhline(y=centr_acc[0],linestyle='-',label='centr 1')
+        plt.axhline(y=centr_acc[1],linestyle='-',label='centr 2')
+        plt.xlabel("Number of workers")
+        plt.ylabel("Accuracy")
+        title='Total accuracy for 1 and 2 passes on the dataset to number of workers'
+        plt.title(title)
+        plt.legend()
+
+        plt.savefig('B_Plots/workers')
+        plt.show()
+    except:
+        print("Something went wrong")
+    return

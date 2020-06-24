@@ -116,7 +116,6 @@ def worker_f(name,clf,parts,e):
                     break
                 X_chunk, y_chunk=load
                 count_chunks+=1
-                print(w_id,"Continue to next chunk...")
                 temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
             
             minibatches+=1
@@ -173,8 +172,6 @@ def worker_f(name,clf,parts,e):
                     minibatches+=1
                     X,y=temp
                     clf.partial_fit(X,y,np.unique([0,1]))
-                    # coef=clf.coef_[0]
-                    # interc=clf.intercept_[0]
                     Si[0]=clf.coef_[0]
                     Si[1]=clf.intercept_[0]
                     Xi=[Si[0]-S_prev[0],Si[1]-S_prev[1]]
@@ -195,9 +192,6 @@ def worker_f(name,clf,parts,e):
                 break
             
             #end of subround...
-
-        # # end of round
-        # while len(pub_x.subscribers)!=1: time.sleep(0.01)
         pub_incr.put(-1)
         if all([v==0 for v in Xi[0]]):
             print(w_id,"ZERO XI") 
@@ -209,6 +203,5 @@ def worker_f(name,clf,parts,e):
             break
       
     print(w_id,"Ended...")
-    #print("Chunks",count_chunks)
     return clf
 

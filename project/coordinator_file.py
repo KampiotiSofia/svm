@@ -36,10 +36,6 @@ def coordinator(n_workers,E,n_rounds,e):
     # get fi's from all workers
     def get_fi(n_workers):  
         fis=[]
-        
-        # fi=sub_f.get(timeout=5)
-        # print("Coo received 1 Fi")
-        # fis.append(fi)
         print("try to get fis workers:",n_workers)
         for i in range(n_workers):
             try:
@@ -55,9 +51,6 @@ def coordinator(n_workers,E,n_rounds,e):
     # get xi's from all workers
     def get_xi(n_workers):  
         drifts=[]
-        # xi=sub_x.get(timeout=5)
-        # print("Coo received 1 xi")
-        # drifts.append(xi)
         print("try to get xi workers:",n_workers)
         for i in range(n_workers):
             try:
@@ -102,7 +95,7 @@ def coordinator(n_workers,E,n_rounds,e):
         pub_init.put(None)
         print("Warmup...Coo Sended E=0...") 
         drifts=get_xi(n_workers) #get local drifts (Xi's)
-        if len(drifts)<k: k=len(drifts) #TAG len(drifts)!=k 
+        if len(drifts)<k: k=len(drifts)
         print("Coo received xi's...workers=",k)
         
         sum_xi=add_x(drifts)
@@ -177,10 +170,8 @@ def coordinator(n_workers,E,n_rounds,e):
         k=len(drifts)
     print("Coo Received xi's workers=",k)
     if len(drifts)==0: return None
-    print("DRIFTS\n",[l[0][:10] for l in drifts],"Intercept\n",[l[1] for l in drifts])
     sum_xi=add_x(drifts)
-    print("SUM", sum_xi[0][:10],sum_xi[1])
-    #TAG change
+
     e1=E[0]+(sum_xi[0]/len(drifts)) #len(drifts)
     e2=E[1]+(sum_xi[1]/len(drifts)) #len(drifts)
     E=[e1,e2]
