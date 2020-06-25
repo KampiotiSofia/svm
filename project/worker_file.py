@@ -145,7 +145,7 @@ def worker_f(name,clf,parts,e):
             # Xi=[[0],0]
             th=get_th() #get theta
             if th==None:
-                Xi=[[0],0]
+                print("nonreceive")
                 continue
             print(w_id,"Received start of subround")
             #begin of subround...
@@ -161,10 +161,8 @@ def worker_f(name,clf,parts,e):
                         break
                     X_chunk, y_chunk=load
                     count_chunks+=1
-                    # print(w_id,"Continue to next chunk...",count_chunks)
                     minibatches=0
                     temp=get_minibatch(X_chunk,y_chunk,minibatches,parts)
-                # print(w_id,"Continue to next minibatch",minibatches)
                 if flag==False:
                       
                     break
@@ -192,16 +190,29 @@ def worker_f(name,clf,parts,e):
                 break
             
             #end of subround...
-        pub_incr.put(-1)
+        
         if all([v==0 for v in Xi[0]]):
             print(w_id,"ZERO XI") 
-            break
+        else:
         
-        pub_x.put(Xi) # send Xi
-        print(w_id,"Sended Xi")
+            pub_x.put(Xi) # send Xi
+            print(w_id,"Sended Xi")
+            Xi=[[0],0]
         if flag==False:
             break
-      
+    # pub_incr.put(-1)
     print(w_id,"Ended...")
     return clf
 
+
+def worker2():
+    pub_try=Pub('lets')
+    sub_try=Sub('receive')
+    pub_try.put("I can send...")
+    try:
+        s=sub_try.get()
+        print("Let see what i get,",s)
+    except TimeoutError:
+        print("I CANT")
+
+    return
