@@ -224,24 +224,23 @@ def add_f(array):
 	return sum_x
 
 
-def coordinator(clf,e,n_minibatch,total_workers):
+def coordinator(loops,clf,e,n_minibatch,total_workers):
+    pub_pass = Pub('passes')
     pub_results = Pub('results')
     pub_init = Pub('Initialize')
     pub_th = Pub('Theta')
     pub_endr = Pub('EndRound')
     pub_endsub = Pub('EndSubRound')
-    #pub_ask_state = Pub('AskState')
     sub_incr = Sub('Increment')
     sub_f = Sub('Fs')
     sub_x = Sub('Xs')
-    # sub_try=Sub('lets')
-    # pub_try=Pub('receive')
     
     # get increments from workers
     def get_incr():    
             try:
-                incr=sub_incr.get(timeout=5)
+                incr=sub_incr.get(timeout=0.01)
                 print("Coo Received increments...",incr)
+                print("WAIT:",sub_incr.buffer)
                 if incr<0: # works as a flag to let coordinator know that chunks are out
                     print("Coo received notice of chunks ended...")
                 return incr
@@ -253,7 +252,7 @@ def coordinator(clf,e,n_minibatch,total_workers):
         print("try to get fis workers:",n_workers)
         for i in range(n_workers):
             try:
-                fi=sub_f.get(timeout=5) 
+                fi=sub_f.get(timeout=2) 
                 print("Coo received",i+1,"fi") 
                 fis.append(fi)
             except TimeoutError:
@@ -268,7 +267,7 @@ def coordinator(clf,e,n_minibatch,total_workers):
         print("try to get xi workers:",n_workers)
         for i in range(n_workers):
             try:
-                xi=sub_x.get(timeout=6)
+                xi=sub_x.get(timeout=2)
                 print("Coo received",i+1,"xi") 
                 drifts.append(xi)
             except TimeoutError:
@@ -298,102 +297,123 @@ def coordinator(clf,e,n_minibatch,total_workers):
     sum_xi=0
     incr=0
     e_y=0.01
-    workers=[]
-    time_stamb=0
-    n_rounds=0
-    
-    print("Coo started ...")
-    client= get_client()
-    for i in range(len(total_workers)-1):
-        workers.append(client.submit(worker_f,i,clf,n_minibatch,e,workers=total_workers[i+1]))
-    
-    time.sleep(1)
-    flag=True #use this flag to finish future if chunks are out
-    start_time=time.time()
-    while flag==True:
-        n_subs=0
-        workers_status=[w.status for w in workers]
-        k=workers_status.count('pending')
-        print("NUMBER OF WORKERS...",k)
-        if E is None: #if E=0 we need to update E
-            pub_init.put(None)
-            print("Warmup...Coo Sended E=0...") 
-            drifts=get_xi(k) #get local drifts (Xi's)
-            print("Coo received xi's...workers=",k)
-            
-            sum_xi=add_x(drifts)
-            e1=sum_xi[0]/len(drifts)
-            e2=sum_xi[1]/len(drifts)
-            E=[e1,e2]
-            pub_init.put(E)
-            print("Coo Sended E")
-        else:
-            pub_init.put(E)
-            print("Coo Sended E")
-        n_rounds+=1
-
-        y=k*f([[0],0],E,e)
-        barrier=e_y*k*f([[0],0],E,e)
+    time_l=[]
+    total_time=[]
+    total_rounds=[]
+    clf_results=[clf]*(len(total_workers)-1)
+    for l in range(loops):
+        t_l=[]
+        workers=[]
+        time_stamb=0
+        n_rounds=0
+        print("Coo started ...")
+        client= get_client()
+        for i in range(len(total_workers)-1):
+            workers.append(client.submit(worker_f,i,clf_results[i],n_minibatch,e,workers=total_workers[i+1]))
         
-
-        #start of the round...
-        print("START ROUND:",n_rounds," workers ",k)
-        while y<=barrier: 
-            th=-y/(2*k)
-
-            pub_th.put(th) #send theta
-            print("Coo Sended theta")
-            n_subs+=1
-            print("START SUBROUND:",n_subs," workers ",k)
-            c=0
-            fis=[]
-            
-            #start of the subround...
-            while c<k: 
-                
-                incr=get_incr() #Get increments
-                if incr<0: # works as a flag to let coordinator know that chunks are out
-                    incr=0
-                workers_status=[w.status for w in workers]
-                k=workers_status.count('pending')
-                if k==0:
-                    flag=False
-                c=c+incr
-                #subrounds ended...
-            
-            pub_endsub.put(0) #let workers know that subrounds ended
-            print("Coo Sended endofSub... num_workers",k)
+        time.sleep(2)
+        flag=True #use this flag to finish future if chunks are out
+        start_time=time.time()
+        while flag==True:
+            n_subs=0
             workers_status=[w.status for w in workers]
-            k=workers_status.count('pending') 
-            fis=get_fi(k) #get F(Xi)'s from workers
-            
-            if len(fis)==0:
-                pub_endr.put(0)
-                break
-            print("Coo Received fi's workers=",k)
-            y=add_f(fis)
-            print("y",y)
-            if flag==False: #if false chunks are out end future
-                print("Coo Sended endofSub..")
-                break
-            
-        #rounds ended...
-        
-        pub_endr.put(0) #let workers know that rounds ended 
-        
-        print("Coo Sended endofround... num_workers",k)
-        drifts=get_xi(len(fis)) #get local drifts (Xi's)
-        print("len of drifts",len(drifts))
-        print("Coo Received xi's workers=",k)
-        if len(drifts)==0: break
+            k=workers_status.count('pending')
+            print("NUMBER OF WORKERS...",k)
+            if E is None: #if E=0 we need to update E
+                pub_init.put(None)
+                print("Warmup...Coo Sended E=0...") 
+                drifts=get_xi(k) #get local drifts (Xi's)
+                print("Coo received xi's...workers=",k)
+                
+                sum_xi=add_x(drifts)
+                e1=sum_xi[0]/len(drifts)
+                e2=sum_xi[1]/len(drifts)
+                E=[e1,e2]
+                pub_init.put(E)
+                print("Coo Sended E")
+            else:
+                pub_init.put(E)
+                print("Coo Sended E")
+            n_rounds+=1
 
-        sum_xi=add_x(drifts)
-        e1=E[0]+(sum_xi[0]/len(drifts)) #len(drifts)
-        e2=E[1]+(sum_xi[1]/len(drifts)) #len(drifts)
-        E=[e1,e2]
-        time_stamb=time.time()-start_time
-        pub_results.put([E,n_subs,k,time_stamb])
-        if flag==False:
-            break
+            y=k*f([[0],0],E,e)
+            barrier=e_y*k*f([[0],0],E,e)
+            
+
+            #start of the round...
+            print("START ROUND:",n_rounds," workers ",k)
+            while y<=barrier: 
+                th=-y/(2*k)
+
+                pub_th.put(th) #send theta
+                print("Coo Sended theta")
+                n_subs+=1
+                print("START SUBROUND:",n_subs," workers ",k)
+                c=0
+                fis=[]
+                
+                #start of the subround...
+                while c<k: 
+                    
+                    incr=get_incr() #Get increments
+                    if incr<0: # works as a flag to let coordinator know that chunks are out
+                        incr=0
+                    workers_status=[w.status for w in workers]
+                    k=workers_status.count('pending')
+                    if k==0:
+                        flag=False
+                    c=c+incr
+                    #subrounds ended...
+                pub_endsub.put(0) #let workers know that subrounds ended
+
+                sub_incr.buffer.clear() #clear the buffered messages from previous th
+                print("Coo Sended endofSub... num_workers",k)
+                workers_status=[w.status for w in workers]
+                # k=workers_status.count('pending') 
+                fis=get_fi(k) #get F(Xi)'s from workers
+                
+                if len(fis)==0 and len(list(sub_f.buffer))!=0: 
+                    fis=get_fi(len(list(sub_f.buffer)))
+                    pub_endr.put(0)
+                    break
+                print("Coo Received fi's workers=",k)
+                y=add_f(fis)
+                print("y",y)
+                if flag==False: #if false chunks are out end future
+                    print("Coo Sended endofSub..")
+                    break
+                
+            #rounds ended...
+            
+            pub_endr.put(0) #let workers know that rounds ended 
+            
+            print("Coo Sended endofround... num_workers",k)
+            drifts=get_xi(len(fis)) #get local drifts (Xi's)
+            print("len of drifts",len(drifts))
+            print("Coo Received xi's workers=",k)
+            if len(drifts)==0 and len(list(sub_x.buffer))!=0: 
+                drifts=get_xi(len(list(sub_x.buffer)))
+            if len(drifts)==0:
+                break
+
+            sum_xi=add_x(drifts)
+            e1=E[0]+(sum_xi[0]/len(drifts)) #len(drifts)
+            e2=E[1]+(sum_xi[1]/len(drifts)) #len(drifts)
+            E=[e1,e2]
+            print("E computed")
+            time_stamb=time.time()-start_time
+            t_l.append(time_stamb)
+            pub_results.put([E,n_subs,k,time_stamb])
+            if flag==False:
+                break
+        msg="\n**\n Pass "+str(l)+" completed\n**\n"
+        print(msg)
+        pub_pass.put(msg)
+        clf_results=[w.result() for w in workers]
+        for w in workers: del w
+        time_l.append(t_l)
+        total_time.append(time_stamb)
+        total_rounds.append(n_rounds)
+        time.sleep(2)
     print("Coo ended...")
-    return E,n_rounds,n_subs,k,time_stamb
+    return total_time,total_rounds,time_l

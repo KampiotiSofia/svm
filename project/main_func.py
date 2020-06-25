@@ -167,8 +167,9 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     n_rounds=0
     time_stamps=[]
     total_time=[]
-    total_acc=[]
+    
     sub_results = Sub('results')
+    sub_pass = Sub('passes')
     
     #make a dataset and save training X and y ,give sample number and future number
     if new=='yes':
@@ -179,49 +180,34 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     size=dataset_params["n_samples"]-len(X_test)
     print("Minibatch size:",size/(chunks*n_minibatch))
     clf = linear_model.SGDClassifier(shuffle=False)
-    clf_results=[clf]*(len(w)-1)
-    start_time=time.time()
-    start_rounds=0
-    for p in range(1):
-        s_run_time=time.time()
-        random_assign(len(w)-1,chunks)
-
-        # for i in range(2):
-        #     worker.append(client.submit(worker_f,i,clf_results[i],n_minibatch,e,workers=w[i+1]))
-
-        #TAG Changed the call of random assign + added a for loop + return the clf and feed it again + print after finished
-        coo=client.submit(coordinator,clf,e,n_minibatch,w,workers=w[0])
-        print("In progress...")
-        # acc=pred(E,clf,X_test,y_test)
-        # Acc.append(acc)
-        while coo.status=='pending':
-            try:
-                results=sub_results.get(timeout=0.01)
-                E=results[0]
-                time_stamps.append(results[3])
-                print(results[1:])
-                acc=pred(E,clf,X_test,y_test)
-                Acc.append(acc)
-            except TimeoutError:
-                continue
-                #return
-    #     t_run_time=time.time()
-    #     start_rounds=n_rounds
-    #     print("End of chunks...")
-    #     status_l=[w.status for w in worker]
-    #     clf_results=[x.result() for x in worker]
-    #     print("Coordinator:",coo.status,"...\nWorkers:",status_l)
-    #     if check_coo(coo)=="ok":
-    #         print("Finished ",p," pass with no error...\n\n")
-    #     del coo
-    #     for f in worker: del f
-    #     worker=[]
-    #     total_time.append(t_run_time-s_run_time)
-    #     total_acc.append(Acc[-1])
-    #     name1="np_arrays/total_time"+str(len(w)-1)
-    #     name2="np_arrays/total_acc"+str(len(w)-1)
-        
-    #     time.sleep(5)
-    # np.save(name1,total_time)
-    # np.save(name2,total_acc)
-    return Acc,len(Acc),time_stamps
+    
+    
+    random_assign(len(w)-1,chunks)
+    l=0
+    loops=2
+    total_acc=[0]*loops
+    coo=client.submit(coordinator,loops,clf,e,n_minibatch,w,workers=w[0])
+    print("In progress...")
+    while coo.status=='pending':
+        try:
+            results=sub_results.get(timeout=0.001)
+            E=results[0]
+            time_stamps.append(results[3])
+            print(results[1:])
+            acc=pred(E,clf,X_test,y_test)
+            Acc.append(acc)
+            total_acc[l]=acc
+        except TimeoutError:
+            if len(sub_pass.buffer)!=0: 
+                print(sub_pass.get(timeout=0.01))
+                sub_pass.buffer.clear()
+                l+=1
+            continue
+    total_time,total_rounds,time_l=coo.result()
+    print("Total time",total_time)
+    del coo
+    name1="np_arrays/total_time"+str(len(w)-1)
+    name2="np_arrays/total_acc"+str(len(w)-1)
+    np.save(name1,total_time)
+    np.save(name2,total_acc)
+    return Acc,time_l,total_rounds,total_time

@@ -45,7 +45,7 @@ def worker_f(name,clf,parts,e):
         w_id= get_worker().name    
         try:
             print(w_id,"waits to receive th...")
-            th=sub_th.get(timeout=1)
+            th=sub_th.get(timeout=0.01)
             print(w_id,"Received theta")
             return th
         except TimeoutError:
@@ -64,7 +64,7 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the subrounds
     def get_endsub():
         try:
-            endsub=sub_endsub.get(timeout=1)
+            endsub=sub_endsub.get(timeout=0.001)
             print(w_id,'End of subround received')
             return endsub
         except TimeoutError:
@@ -124,7 +124,6 @@ def worker_f(name,clf,parts,e):
             clf.partial_fit(X,y,np.unique(([0,1])))
             Si = [clf.coef_[0],clf.intercept_[0]]
             Xi=[clf.coef_[0],clf.intercept_[0]]
-            while len(pub_x.subscribers)!=1: time.sleep(0.01)
             pub_x.put(Xi)
             print(w_id,"Sended Xi")
             E=get_init() # get E from coordinator
@@ -145,7 +144,6 @@ def worker_f(name,clf,parts,e):
             # Xi=[[0],0]
             th=get_th() #get theta
             if th==None:
-                print("nonreceive")
                 continue
             print(w_id,"Received start of subround")
             #begin of subround...
@@ -182,7 +180,6 @@ def worker_f(name,clf,parts,e):
                         pub_incr.put(incr)
                         ci=ci_new
                         print(w_id,"Sended...",incr)
-            while len(pub_f.subscribers)!=1: time.sleep(0.01)
             pub_f.put(f(Xi,E,e))
             print(w_id,"Sended Fi") 
             print(w_id,"End of subround")
