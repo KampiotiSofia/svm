@@ -55,7 +55,7 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the rounds    
     def get_endr():
         try:
-            endr=sub_endr.get(timeout=1)
+            endr=sub_endr.get(timeout=0.1)
             print(w_id,'End of round received')
             return endr
         except TimeoutError:

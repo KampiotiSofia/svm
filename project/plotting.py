@@ -36,8 +36,6 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
     plt.title(title)
     plt.legend()
 
-    
-    cdict = np.random.rand(len(n_rounds),3)
     plt.subplot(223)
 
     
@@ -120,28 +118,28 @@ def plot_workers(l,centr_time,centr_acc):
         
         figure(figsize=(15,15))
         plt.subplot(221)
-        plt.plot(l,t1,color='c', label='1st pass', marker='x',markersize=4)
-        plt.plot(l,t2,color='m', label='2nd pass', marker='x',markersize=4)
-        plt.axhline(y=centr_time[0],color='b',linestyle='-',label='centr 1')
-        plt.axhline(y=centr_time[1],color='r',linestyle='-',label='centr 2')
+        plt.plot(l,t1,color='b',label='1st pass', marker='o',markersize=5)
+        plt.plot(l,t2,color='m',label='2nd pass', marker='o',markersize=5)
+        plt.axhline(y=centr_time[0], color='g',linestyle='-.',label='centr 1')
+        plt.axhline(y=centr_time[1],color='r',linestyle='-.',label='centr 2')
         plt.xlabel("Number of workers")
         plt.ylabel("Time (s)")
-        title='Total time for 1 and 2 passes on the dataset to number of workers'
+        title='Total time for 1 and 2 passes on the dataset/workers'
         plt.title(title)
         plt.legend()
 
         plt.subplot(222)
-        plt.plot(l,a1, label='1st pass', marker='x',markersize=4)
-        plt.plot(l,a2, label='2nd pass', marker='x',markersize=4)
-        plt.axhline(y=centr_acc[0],linestyle='-',label='centr 1')
-        plt.axhline(y=centr_acc[1],linestyle='-',label='centr 2')
+        plt.plot(l,a1,color='b',label='1st pass', marker='o',markersize=5)
+        plt.plot(l,a2,color='m', label='2nd pass', marker='o',markersize=5)
+        plt.axhline(y=centr_acc[0],color='g',linestyle='-.',label='centr 1')
+        plt.axhline(y=centr_acc[1],color='r',linestyle='-.',label='centr 2')
         plt.xlabel("Number of workers")
         plt.ylabel("Accuracy")
-        title='Total accuracy for 1 and 2 passes on the dataset to number of workers'
+        title='Total accuracy for 1 and 2 passes on the dataset/workers'
         plt.title(title)
         plt.legend()
 
-        plt.savefig('B_Plots/workers')
+        plt.savefig('B_Plots/workers_2')
         plt.show()
     except:
         print("Something went wrong")

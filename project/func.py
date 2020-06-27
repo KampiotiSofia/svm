@@ -109,18 +109,6 @@ def check_coo(coo):
             return "Someting went wrong..."
     return "ok"
 
-# def fill_arrays(rounds,sub_rs,feature_array,result):
-#     if len(rounds)==0:
-#         rounds.append(result[1])
-#     else:
-#         rounds.append(rounds[-1]+result[1])
-#     sub_rs.extend(result[2])
-#     E=result[0][0]
-#     for i in range(len(feature_array)):
-#         feature_array[i].append(E[i])
-#     return rounds,sub_rs,feature_array
-#get chunks to fit
-
 def create_chunks(parts):
     X=np.load("np_arrays/X.npy")
     y=np.load("np_arrays/y.npy")
