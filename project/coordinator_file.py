@@ -92,7 +92,7 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
         for i in range(len(total_workers)-1):
             workers.append(client.submit(worker_f,i,clf_results[i],n_minibatch,e,workers=total_workers[i+1]))
         
-        time.sleep(3)
+        time.sleep(5)
         flag=True #use this flag to finish future if chunks are out
         start_time=time.time()
         while flag==True:
@@ -115,7 +115,7 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
             else:
                 pub_init.put(E)
                 print("Coo Sended E")
-            n_rounds+=1
+            
 
             y=k*f([[0],0],E,e)
             barrier=e_y*k*f([[0],0],E,e)
@@ -157,7 +157,7 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
                     fis=get_fi(len(list(sub_f.buffer)))
 
                 if len(fis)==0:
-                    pub_endr.put(0)
+                    flag=False
                     break
                 print("Coo Received fi's workers=",k)
                 y=add_f(fis)
@@ -184,6 +184,7 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
             e2=E[1]+(sum_xi[1]/len(drifts)) #len(drifts)
             E=[e1,e2]
             print("E computed")
+            n_rounds+=1
             time_stamb=time.time()-start_time
             t_l.append(time_stamb)
             pub_results.put([E,n_subs,k,time_stamb])

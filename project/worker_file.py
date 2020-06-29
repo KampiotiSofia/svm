@@ -122,6 +122,7 @@ def worker_f(name,clf,parts,e):
             X,y=temp
               
             clf.partial_fit(X,y,np.unique(([0,1])))
+            
             Si = [clf.coef_[0],clf.intercept_[0]]
             Xi=[clf.coef_[0],clf.intercept_[0]]
             pub_x.put(Xi)
@@ -135,7 +136,7 @@ def worker_f(name,clf,parts,e):
         clf.intercept_[0]=E[1]
         S_prev[0]= np.array(list(E[0]))
         S_prev[1]=E[1]
-        Xi=[[0],0]
+        # Xi=[[0],0]
         #begin of round...
         #FIXME do not send message every time & check rounds and subrounds 
         while get_endr()==None:
@@ -154,7 +155,7 @@ def worker_f(name,clf,parts,e):
                 while temp is None:
                     load=load_np(X_chunk_array,y_chunk_array,count_chunks)
                     if load is None:
-                        print(w_id,"End of chunks")
+                        print(w_id,"End of chunks",count_chunks,minibatches)
                         flag=False 
                         break
                     X_chunk, y_chunk=load
