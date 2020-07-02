@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
 from jupyterthemes import jtplot
 import numpy as np
+from operator import add
+from matplotlib.ticker import StrMethodFormatter
 
 def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
     jtplot.style(theme='grade3')
@@ -99,44 +101,92 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
 def plot_workers(l,centr_time,centr_acc):
     t=[]
     a=[]
-    try:
-        for i in l:
-            name1="np_arrays/total/total_time"+str(i)+".npy"
-            name2="np_arrays/total/total_acc"+str(i)+".npy"
-            t.append(np.load(name1))
-            a.append(np.load(name2))
-        t1=[i[0] for i in t]
-        t2=[i[1] for i in t]
-        a1=[i[0] for i in a]
-        a2=[i[1] for i in a]
+    
+    for i in l:
+        name1="np_arrays/total/total_time"+str(i)+".npy"
+        name2="np_arrays/total/total_acc"+str(i)+".npy"
+        t.append(np.load(name1))
+        a.append(np.load(name2))
+    t1=[i[0] for i in t]
+    t2=[i[1] for i in t]
+    a1=[i[0] for i in a]
+    a2=[i[1] for i in a]
 
-        jtplot.style(theme='grade3')
-        
-        figure(figsize=(15,15))
-        plt.subplot(221)
-        plt.plot(l,t1,color='b',label='1st pass', marker='o',markersize=5)
-        plt.plot(l,t2,color='m',label='2nd pass', marker='o',markersize=5)
-        plt.axhline(y=centr_time[0], color='g',linestyle='-.',label='centr 1')
-        plt.axhline(y=centr_time[1],color='r',linestyle='-.',label='centr 2')
-        plt.xlabel("Number of workers")
-        plt.ylabel("Time (s)")
-        title='Total time for 1 and 2 passes on the dataset/workers'
-        plt.title(title)
-        plt.legend()
+    jtplot.style(theme='grade3')
+    
+    figure(figsize=(15,15))
+    plt.subplot(221)
+    plt.plot(l,t1,color='b',label='1st pass', marker='o',markersize=5)
+    plt.plot(l,t2,color='m',label='2nd pass', marker='o',markersize=5)
+    plt.axhline(y=centr_time[0], color='g',linestyle='-.',label='centr 1')
+    plt.axhline(y=centr_time[1],color='r',linestyle='-.',label='centr 2')
+    plt.xlabel("Number of workers")
+    plt.ylabel("Time (s)")
+    title='Total time for 1 and 2 passes on the dataset/workers'
+    plt.title(title)
+    plt.legend()
 
-        plt.subplot(222)
-        plt.plot(l,a1,color='b',label='1st pass', marker='o',markersize=5)
-        plt.plot(l,a2,color='m', label='2nd pass', marker='o',markersize=5)
-        plt.axhline(y=centr_acc[0],color='g',linestyle='-.',label='centr 1')
-        plt.axhline(y=centr_acc[1],color='r',linestyle='-.',label='centr 2')
-        plt.xlabel("Number of workers")
-        plt.ylabel("Accuracy")
-        title='Total accuracy for 1 and 2 passes on the dataset/workers'
-        plt.title(title)
-        plt.legend()
+    plt.subplot(222)
+    plt.plot(l,a1,color='b',label='1st pass', marker='o',markersize=5)
+    plt.plot(l,a2,color='m', label='2nd pass', marker='o',markersize=5)
+    plt.axhline(y=centr_acc[0],color='g',linestyle='-.',label='centr 1')
+    plt.axhline(y=centr_acc[1],color='r',linestyle='-.',label='centr 2')
+    plt.gca().yaxis.set_major_formatter(StrMethodFormatter('{x:,.2f}'))
+    plt.xlabel("Number of workers")
+    plt.ylabel("Accuracy")
+    title='Total accuracy for 1 and 2 passes on the dataset/workers'
+    plt.title(title)
+    plt.legend()
 
-        plt.savefig('B_Plots/workers_bigger')
-        plt.show()
-    except:
-        print("Something went wrong")
+    plt.savefig('B_Plots/workers_new')
+    plt.show()
+    
+    return
+
+def plot_speedup(l,centr_time,centr_acc):
+    t=[]
+    a=[]
+    for i in l:
+        name1="np_arrays/total/total_time"+str(i)+".npy"
+        name2="np_arrays/total/total_acc"+str(i)+".npy"
+        t.append(np.load(name1))
+        a.append(np.load(name2))
+    t1=[i[0] for i in t]
+    t2=[i[1] for i in t]
+    a1=[i[0] for i in a]
+    a2=[i[1] for i in a]
+    
+    total_centr_time=centr_time[0]+centr_time[1]
+    total_time=list( map(add, t1, t2) )
+    speedup=[total_centr_time/x for x in total_time]
+    # for i in t2:
+    #     speedup.append(total_centr_time/(t1[-1]+i))
+    
+    
+    jtplot.style(theme='grade3')
+    
+    figure(figsize=(15,15))
+    plt.subplot(221)
+    plt.plot(l,speedup,color='b')
+    plt.xlabel("Number of workers")
+    plt.ylabel("Speed up - centralized/distributed time")
+    title='Speed-up for 2 passes on the dataset/workers'
+    plt.title(title)
+    plt.legend()
+
+    plt.subplot(222)
+    plt.ylim(0.8, 1)
+    plt.plot(l,a2,color='b',label='distributed')
+    plt.axhline(y=centr_acc[1],color='r',linestyle='-.',label='centralized')
+    plt.gca().yaxis.set_major_formatter(StrMethodFormatter('{x:,.2f}'))
+    # plt.locator_params(axis='y', nbins=5)
+    plt.xlabel("Number of workers")
+    plt.ylabel("Accuracy")
+    title='Total accuracy for 2 passes on the dataset per worker'
+    plt.title(title)
+    plt.legend()
+
+    plt.savefig('B_Plots/speedup_new')
+    plt.show()
+    
     return

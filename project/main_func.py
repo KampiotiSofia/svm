@@ -85,6 +85,7 @@ def real_partial(minibatches):
     # walk through all chunks and train a local model
     for i in range(2):
         s_run_time=time.time()
+        add_time=0
         print("----------------------------------------------\n")
         while True:
             if count_chunks>=100:
@@ -102,7 +103,10 @@ def real_partial(minibatches):
                 print("Minibaches",n_minibatch)
                 X_b=batch[0]
                 y_b=batch[1]
+                test_start=time.time()
                 clf.partial_fit(X_b,y_b,np.unique(([0,1])))
+                test_end=time.time()
+                add_time+=test_end-test_start
                 n_minibatch+=1
                 y_pred = clf.predict(X_test)
                 #print("Coef:",clf.coef_[0])
@@ -111,7 +115,7 @@ def real_partial(minibatches):
                 sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
                 batch= get_minibatch(X,y,n_minibatch,minibatches)
                 
-            
+        print("TIME :",add_time)  
         t_run_time=time.time()
         t.append(t_run_time-s_run_time)
         print("Ended",i)

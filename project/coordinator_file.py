@@ -190,14 +190,16 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
             pub_results.put([E,n_subs,k,time_stamb])
             if flag==False:
                 break
-        msg="\n**\n Pass "+str(l)+" completed\n**\n"
-        print(msg)
-        pub_pass.put(msg)
+        
+        
         clf_results=[w.result() for w in workers]
         for w in workers: del w
         time_l.append(t_l)
         total_time.append(time_stamb)
         total_rounds.append(n_rounds)
+        msg="\n**\n Pass "+str(l)+" completed\n**\n"
+        print(msg)
+        pub_pass.put(msg)
         time.sleep(5)
     print("Coo ended...")
     return total_time,total_rounds,time_l
