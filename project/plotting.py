@@ -138,7 +138,7 @@ def plot_workers(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/workers_new')
+    plt.savefig('B_Plots/workers_03_unb_07_03_centr')
     plt.show()
     
     return
@@ -153,7 +153,6 @@ def plot_speedup(l,centr_time,centr_acc):
         a.append(np.load(name2))
     t1=[i[0] for i in t]
     t2=[i[1] for i in t]
-    a1=[i[0] for i in a]
     a2=[i[1] for i in a]
     
     total_centr_time=centr_time[0]+centr_time[1]
@@ -186,7 +185,7 @@ def plot_speedup(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/speedup_new')
+    plt.savefig('B_Plots/speedup_03_unb_07_03_centr')
     plt.show()
     
     return
