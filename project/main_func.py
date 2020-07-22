@@ -65,11 +65,11 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     total_time,total_rounds,time_l=coo.result()
     print("Total time",total_time)
     del coo
-    name1="np_arrays/total/total_time"+str(len(w)-1)
-    name2="np_arrays/total/total_acc"+str(len(w)-1)
-    np.save(name1,total_time)
-    np.save(name2,total_acc)
-    return Acc,time_l,total_rounds,total_time
+    # name1="np_arrays/total/total_time"+str(len(w)-1)
+    # name2="np_arrays/total/total_acc"+str(len(w)-1)
+    # np.save(name1,total_time)
+    # np.save(name2,total_acc)
+    return Acc,time_l,total_rounds,total_time,total_acc
 
 def real_partial(minibatches):
     print("Start...")

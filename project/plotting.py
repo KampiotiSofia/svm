@@ -99,12 +99,16 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
     return
 
 def plot_workers(l,centr_time,centr_acc):
+    t_max=[]
+    t_min=[]
+    a_max=[]
+    a_min=[]
     t=[]
     a=[]
-    
+    l=[4,8,12,16,20,24,28,32]
     for i in l:
-        name1="np_arrays/total/total_time"+str(i)+".npy"
-        name2="np_arrays/total/total_acc"+str(i)+".npy"
+        name1="np_arrays/total/total_time_mean"+str(i)+".npy"
+        name2="np_arrays/total/total_acc_mean"+str(i)+".npy"
         t.append(np.load(name1))
         a.append(np.load(name2))
     t1=[i[0] for i in t]
@@ -112,12 +116,16 @@ def plot_workers(l,centr_time,centr_acc):
     a1=[i[0] for i in a]
     a2=[i[1] for i in a]
 
+    t_max,t_min,a_max,a_min=get_max_min(l)
+
     jtplot.style(theme='grade3')
-    
+    print(t_max)
     figure(figsize=(15,15))
     plt.subplot(221)
     plt.plot(l,t1,color='b',label='1st pass', marker='o',markersize=5)
+    plt.fill_between(l, [i[0] for i in t_max], [i[0] for i in t_min], color='grey', alpha='0.5')
     plt.plot(l,t2,color='m',label='2nd pass', marker='o',markersize=5)
+    plt.fill_between(l,[i[1] for i in t_max], [i[1] for i in t_min], color='grey', alpha='0.5')
     plt.axhline(y=centr_time[0], color='g',linestyle='-.',label='centr 1')
     plt.axhline(y=centr_time[1],color='r',linestyle='-.',label='centr 2')
     plt.xlabel("Number of workers")
@@ -138,7 +146,7 @@ def plot_workers(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/workers_03_unb_07_03_centr')
+    plt.savefig('B_Plots/workers_test')
     plt.show()
     
     return
@@ -147,8 +155,8 @@ def plot_speedup(l,centr_time,centr_acc):
     t=[]
     a=[]
     for i in l:
-        name1="np_arrays/total/total_time"+str(i)+".npy"
-        name2="np_arrays/total/total_acc"+str(i)+".npy"
+        name1="np_arrays/total/total_time_mean"+str(i)+".npy"
+        name2="np_arrays/total/total_acc_mean"+str(i)+".npy"
         t.append(np.load(name1))
         a.append(np.load(name2))
     t1=[i[0] for i in t]
@@ -185,7 +193,47 @@ def plot_speedup(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/speedup_03_unb_07_03_centr')
+    plt.savefig('B_Plots/speedup_test')
     plt.show()
     
     return
+
+def common_range(data):
+    sort_data = np.sort(data)
+    Q1 = np.percentile(data, 25, interpolation = 'midpoint')  
+    Q2 = np.percentile(data, 50, interpolation = 'midpoint')  
+    Q3 = np.percentile(data, 75, interpolation = 'midpoint')
+    IQR = Q3 - Q1  
+    print('Interquartile range is', IQR) 
+    low_lim = Q1 - 1.5 * IQR 
+    up_lim = Q3 + 1.5 * IQR 
+    outlier =[] 
+    data_l=list(data)
+    for x in data_l: 
+        if ((x> up_lim) or (x<low_lim)):
+            outlier.append(x)
+    if len(outlier)<=5:
+        for x in outlier:
+            data_l.remove(x)
+    data=np.array(data_l)
+    return max(data),min(data)
+
+def get_max_min(l):
+    t_max=[]
+    t_min=[]
+    a_max=[]
+    a_min=[]
+    for i in l:
+        name1="np_arrays/total/total_time"+str(i)+".npy"
+        name2="np_arrays/total/total_acc"+str(i)+".npy"
+        t=np.load(name1)
+        a=np.load(name2)
+        t1_M,t1_m=common_range([i[0] for i in t])
+        t2_M,t2_m=common_range([i[1] for i in t])
+        a1_M,a1_m=common_range([i[0] for i in a])
+        a2_M,a2_m=common_range([i[1] for i in a])
+        t_max.append([t1_M,t2_M])
+        t_min.append([t1_m,t2_m])
+        a_max.append([a1_M,a2_M])
+        a_min.append([a1_m,a2_m])
+    return t_max,t_min,a_max,a_min
