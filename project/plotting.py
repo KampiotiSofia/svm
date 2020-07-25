@@ -15,7 +15,6 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
     count=0
     print(count)
     for i in range(len(Acc)):
-       
         plt.plot(time_stamps[i][0], Acc[i], label=labels[i], marker='o',markersize=3)
         
     plt.xlabel("Time(s)")
@@ -33,19 +32,19 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
     plt.title(title)
     plt.legend()
 
+    # plt.subplot(223)
+
+    
+    # for i in range(len(Acc)):
+    #     plt.plot([x for x in range(n_rounds[i][0])],Acc[i],label=labels[i],marker='o',markersize=3)
+    
+    # plt.xlabel("Rounds")
+    # plt.ylabel("Accuracy")
+    # title='1.2 Rounds/Time for distributed for different '+kind+' values'
+    # plt.title(title)
+    # plt.legend()
+
     plt.subplot(223)
-
-    
-    for i in range(len(Acc)):
-        plt.plot([x for x in range(n_rounds[i][0])],Acc[i],label=labels[i],marker='o',markersize=3)
-    
-    plt.xlabel("Rounds")
-    plt.ylabel("Accuracy")
-    title='1.2 Rounds/Time for distributed for different '+kind+' values'
-    plt.title(title)
-    plt.legend()
-
-    plt.subplot(224)
     
     plt.plot(real_time,Acc_real,label=r_labels)
     plt.annotate(round(Acc_real[-1],3),size=10, xy=(real_time[-1], Acc_real[-1]), xytext=(real_time[-1]-1, Acc_real[-1]-0.02),
@@ -54,46 +53,45 @@ def plot(real_time,Acc_real,Acc,n_rounds,time_stamps,labels,r_labels,name,kind):
     
     plt.xlabel("Time(s)")
     plt.ylabel("Accuracy")
-    plt.title('1.4 Accuracy/Time centralized')
+    plt.title('1.3 Accuracy/Time centralized')
     plt.legend()
-    plt.savefig(name)
-    plt.show()
+    
 
-    acc_sel=[]
-    limit_Acc=[]
-    limit_time=[]
-    time_sel=time_stamps[2:5]
-    for i in time_sel:
+    # acc_sel=[]
+    # limit_Acc=[]
+    # limit_time=[]
+    # time_sel=time_stamps[2:5]
+    # for i in time_sel:
         
-        limit_time.append([x for x in i if x <= 150])
-    limit_timeReal=[i for i in real_time[0] if i <= 150]
-    # get e=0,2 e=0,3 e=0,4 
-    acc_sel=Acc[2:5]
-    for i in range(len(acc_sel)):
-        limit_Acc.append(acc_sel[i][:len(limit_time[i])])
+    #     limit_time.append([x for x in i if x <= 150])
+    # limit_timeReal=[i for i in real_time[0] if i <= 150]
+    # # get e=0,2 e=0,3 e=0,4 
+    # acc_sel=Acc[2:5]
+    # for i in range(len(acc_sel)):
+    #     limit_Acc.append(acc_sel[i][:len(limit_time[i])])
 
-    limit_time.append(limit_timeReal)
-    limit_Acc.append(Acc_real[0][:len(limit_timeReal)])
-    figure(figsize=(15,15))
-    plt.subplot(221)
-    l=[0.2,0.3,0.4,'centralized']
+    # limit_time.append(limit_timeReal)
+    # limit_Acc.append(Acc_real[0][:len(limit_timeReal)])
+    # figure(figsize=(15,15))
+    # plt.subplot(221)
+    # l=[0.2,0.3,0.4,'centralized']
 
-    for i in range(len(limit_time)):
-        plt.plot(limit_time[i], limit_Acc[i], label=l[i], marker='o',markersize=3)
-    plt.xlabel("Time(s)")
-    plt.ylabel("Accuracy")
-    title='1.1 Accuracy/Time for different '+kind+' values limited to ~=100s'
-    plt.title(title)
-    plt.legend()
+    # for i in range(len(limit_time)):
+    #     plt.plot(limit_time[i], limit_Acc[i], label=l[i], marker='o',markersize=3)
+    # plt.xlabel("Time(s)")
+    # plt.ylabel("Accuracy")
+    # title='1.1 Accuracy/Time for different '+kind+' values limited to ~=100s'
+    # plt.title(title)
+    # plt.legend()
 
-    plt.subplot(222)
-    for i in range(len(limit_time)):
-        plt.plot(limit_time[i], [x for x in range(len(limit_time[i]))], label=l[i], marker='o',markersize=3)
-    plt.xlabel("Rounds")
-    plt.ylabel("Accuracy")
-    title='1.2 Rounds/Accuracy for limit to ~=100s '+kind
-    plt.title(title)
-    plt.legend()
+    # plt.subplot(222)
+    # for i in range(len(limit_time)):
+    #     plt.plot(limit_time[i], [x for x in range(len(limit_time[i]))], label=l[i], marker='o',markersize=3)
+    # plt.xlabel("Rounds")
+    # plt.ylabel("Accuracy")
+    # title='1.2 Rounds/Accuracy for limit to ~=100s '+kind
+    # plt.title(title)
+    # plt.legend()
     plt.savefig('B_'+name)
     plt.show()
     return
@@ -146,7 +144,7 @@ def plot_workers(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/workers_test')
+    plt.savefig('B_Plots/workers_test_mnist')
     plt.show()
     
     return
@@ -166,9 +164,6 @@ def plot_speedup(l,centr_time,centr_acc):
     total_centr_time=centr_time[0]+centr_time[1]
     total_time=list( map(add, t1, t2) )
     speedup=[total_centr_time/x for x in total_time]
-    # for i in t2:
-    #     speedup.append(total_centr_time/(t1[-1]+i))
-    
     
     jtplot.style(theme='grade3')
     
@@ -193,18 +188,17 @@ def plot_speedup(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/speedup_test')
+    plt.savefig('B_Plots/speedup_test_mnist')
     plt.show()
     
     return
 
 def common_range(data):
     sort_data = np.sort(data)
-    Q1 = np.percentile(data, 25, interpolation = 'midpoint')  
-    Q2 = np.percentile(data, 50, interpolation = 'midpoint')  
-    Q3 = np.percentile(data, 75, interpolation = 'midpoint')
-    IQR = Q3 - Q1  
-    print('Interquartile range is', IQR) 
+    Q1 = np.percentile(sort_data, 25, interpolation = 'midpoint')  
+    Q2 = np.percentile(sort_data, 50, interpolation = 'midpoint')  
+    Q3 = np.percentile(sort_data, 75, interpolation = 'midpoint')
+    IQR = Q3 - Q1 
     low_lim = Q1 - 1.5 * IQR 
     up_lim = Q3 + 1.5 * IQR 
     outlier =[] 
@@ -212,8 +206,8 @@ def common_range(data):
     for x in data_l: 
         if ((x> up_lim) or (x<low_lim)):
             outlier.append(x)
-    if len(outlier)<=5:
-        for x in outlier:
+    # if len(outlier)<=5:
+    #     for x in outlier:
             data_l.remove(x)
     data=np.array(data_l)
     return max(data),min(data)

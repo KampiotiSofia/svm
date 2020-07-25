@@ -11,6 +11,7 @@ from worker_file import worker_f
 from func import create_chunks,create_dataset,load_dataset,pred,check_worker,check_coo,random_assign,get_minibatch
 
 def main(client,w,new,dataset_params,e,chunks,n_minibatch):
+    
     print("-------------------------------------------------------------\n")
     print("Start with num of chunks:",chunks,",e:",e)
     E=None
@@ -27,6 +28,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
 
     X_test=np.load("np_arrays/X_test.npy")
     y_test=np.load("np_arrays/y_test.npy") 
+   
     size=dataset_params["n_samples"]-len(X_test)
     print("Minibatch size:",size/(chunks*n_minibatch))
     clf = linear_model.SGDClassifier(shuffle=False)
@@ -34,7 +36,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     
     random_assign(len(w)-1,chunks)
     l=0
-    loops=2
+    loops=1
     total_acc=[0]*loops
     coo=client.submit(coordinator,loops,clf,e,n_minibatch,w,workers=w[0])
     print("In progress...")
@@ -69,6 +71,7 @@ def main(client,w,new,dataset_params,e,chunks,n_minibatch):
     # name2="np_arrays/total/total_acc"+str(len(w)-1)
     # np.save(name1,total_time)
     # np.save(name2,total_acc)
+    
     return Acc,time_l,total_rounds,total_time,total_acc
 
 def real_partial(minibatches):
@@ -79,15 +82,17 @@ def real_partial(minibatches):
     Acc=[]
     f_acc=[]
     t=[]
+    t_list=[]
     X_test=np.load("np_arrays/X_test.npy")
     y_test=np.load("np_arrays/y_test.npy")
 
     # walk through all chunks and train a local model
-    for i in range(2):
-        s_run_time=time.time()
-        add_time=0
+    for i in range(1):
+      
         print("----------------------------------------------\n")
+        s_run_time=time.time()
         while True:
+            t1=time.time()
             if count_chunks>=100:
                 print("NO Chunks...")
                 break
@@ -103,10 +108,7 @@ def real_partial(minibatches):
                 print("Minibaches",n_minibatch)
                 X_b=batch[0]
                 y_b=batch[1]
-                test_start=time.time()
                 clf.partial_fit(X_b,y_b,np.unique(([0,1])))
-                test_end=time.time()
-                add_time+=test_end-test_start
                 n_minibatch+=1
                 y_pred = clf.predict(X_test)
                 #print("Coef:",clf.coef_[0])
@@ -114,15 +116,16 @@ def real_partial(minibatches):
                 Acc.append(metrics.accuracy_score(y_test, y_pred))
                 sys.stdout.write("Accuracy: %f\n" % (100*metrics.accuracy_score(y_test, y_pred)))
                 batch= get_minibatch(X,y,n_minibatch,minibatches)
-                
-        print("TIME :",add_time)  
+                t2=time.time()
+                t_list.append(t2-t1)   
+        
         t_run_time=time.time()
         t.append(t_run_time-s_run_time)
         print("Ended",i)
         count_chunks=0
         
         f_acc.append(Acc[-1])
-    return t,Acc,f_acc
+    return t_list,t,Acc,f_acc
 
 
 
