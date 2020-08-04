@@ -1,6 +1,7 @@
 from dask.distributed import Pub, Sub, TimeoutError
 from dask.distributed import get_worker,wait
 import numpy as np
+import pandas as pd
 import time
 import math 
 
@@ -18,7 +19,7 @@ a different file to update Si.
 """
 
 
-def worker_f(name,clf,parts,e):
+def worker_f(name,clf,parts,e,n_workers):
     sub_init = Sub('Initialize')
     sub_th = Sub('Theta')
     sub_endr = Sub('EndRound')
@@ -31,21 +32,21 @@ def worker_f(name,clf,parts,e):
     # get initial E value from coordinator
     def get_init():
         w_id= get_worker().name    
-        try:
-            print(w_id,"waits to receive E...")
-            init=sub_init.get(timeout=20)
-            print(w_id,"Received E")
-            return init
-        except TimeoutError:
-            print(w_id,'Error E not received')
-            return False
+        # try:
+        print(w_id,"waits to receive E...")
+        init=sub_init.get()
+        print(w_id,"Received E")
+        return init
+        # except TimeoutError:
+        #     print(w_id,'Error E not received')
+        #     return False
 
     #get theta from cordinator   
     def get_th():
         w_id= get_worker().name    
         try:
             print(w_id,"waits to receive th...")
-            th=sub_th.get(timeout=0.01)
+            th=sub_th.get(timeout=20)
             print(w_id,"Received theta")
             return th
         except TimeoutError:
@@ -64,7 +65,7 @@ def worker_f(name,clf,parts,e):
     #get aknowlegment for continue or stop the subrounds
     def get_endsub():
         try:
-            endsub=sub_endsub.get(timeout=0.001)
+            endsub=sub_endsub.get(timeout=0)
             print(w_id,'End of subround received')
             return endsub
         except TimeoutError:
@@ -79,6 +80,9 @@ def worker_f(name,clf,parts,e):
     th=0
     w_id= get_worker().name #get worker id
     print("worker",w_id,"started...")
+    start_time=0
+    wait_time=0
+    train_time=0
     flag=True 
     E=[[0],0]
     Si=[0,0]
@@ -96,12 +100,15 @@ def worker_f(name,clf,parts,e):
     
     
     while flag==True: #while this flag stays true there are chunks
+        
+        t2=time.time()
         E=get_init() # get E from coordinator
         if E is False:
             pub_incr.put(-1)   
             return clf
         
         if E is None: #if E=0 compute Xi and return Xi to update E
+            t1=time.time()
             #TODO make it prettier
             print(w_id,"Warmup....")
             temp=get_minibatch(X_chunk,y_chunk,minibatches,parts) #get_newSi(count_chunks,f_name)
@@ -127,10 +134,15 @@ def worker_f(name,clf,parts,e):
             Xi=[clf.coef_[0],clf.intercept_[0]]
             pub_x.put(Xi)
             print(w_id,"Sended Xi")
+            start_time+=time.time()-t1
+            t2=time.time()
             E=get_init() # get E from coordinator
             if E is False:
                 pub_incr.put(-1)   
                 break
+            
+            
+            t1=0
         print(w_id,"Start of round") 
         clf.coef_[0]=E[0]
         clf.intercept_[0]=E[1]
@@ -138,16 +150,19 @@ def worker_f(name,clf,parts,e):
         S_prev[1]=E[1]
         # Xi=[[0],0]
         #begin of round...
-        #FIXME do not send message every time & check rounds and subrounds 
-        while get_endr()==None:
-            
+        wait_time+=time.time()-t2
+        while True:
+            t2=time.time()
+            th=get_th()
+            wait_time+=time.time()-t2
+            if th=='End':
+                break
+            t3=time.time()
+            print("HEEEEEEEEEYYYYYYYY th",th)
             ci=0
-            # Xi=[[0],0]
-            th=get_th() #get theta
-            if th==None:
-                continue
+            
             print(w_id,"Received start of subround")
-            #begin of subround...
+            
             while get_endsub()==None:
                 zi=f(Xi,E,e)
                 temp=get_minibatch(X_chunk,y_chunk,minibatches,parts) 
@@ -184,33 +199,27 @@ def worker_f(name,clf,parts,e):
             pub_f.put(f(Xi,E,e))
             print(w_id,"Sended Fi") 
             print(w_id,"End of subround")
+            train_time+=time.time()-t3
             if flag==False:
                 break
             
             #end of subround...
-        
-        if all([v==0 for v in Xi[0]]):
-            print(w_id,"ZERO XI") 
-        else:
-        
-            pub_x.put(Xi) # send Xi
-            print(w_id,"Sended Xi")
-            Xi=[[0],0]
+            
+        pub_x.put(Xi) # send Xi
+        print(w_id,"Sended Xi")
+            # Xi=[[0],0]
         if flag==False:
             break
     # pub_incr.put(-1)
+    while True:
+        try:
+            df=pd.read_csv('data_workers.csv')
+            df = df.append({'n_workers':(n_workers-1),'start_time':start_time, 'wait_time':wait_time,'train_time':train_time},ignore_index=True)
+            df.to_csv('data_workers.csv',index=False)
+            break
+        except:
+            continue
     print(w_id,"Ended...")
     return clf
 
 
-def worker2():
-    pub_try=Pub('lets')
-    sub_try=Sub('receive')
-    pub_try.put("I can send...")
-    try:
-        s=sub_try.get()
-        print("Let see what i get,",s)
-    except TimeoutError:
-        print("I CANT")
-
-    return

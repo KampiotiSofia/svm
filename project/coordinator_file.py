@@ -42,14 +42,13 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
     def get_fi(n_workers):  
         fis=[]
         print("try to get fis workers:",n_workers)
-        for i in range(n_workers):
+        while len(fis)!=n_workers:
             try:
-                fi=sub_f.get(timeout=0.1) 
-                print("Coo received",i+1,"fi") 
+                fi=sub_f.get(timeout=0) 
+                print("Coo received",len(fis),"fi") 
                 fis.append(fi)
             except TimeoutError:
-                print('Fis Lost worker/workers num=',len(fis))
-                break
+                continue
         return fis
         
 
@@ -57,14 +56,13 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
     def get_xi(n_workers):  
         drifts=[]
         print("try to get xi workers:",n_workers)
-        for i in range(n_workers):
+        while len(drifts)!=n_workers:
             try:
-                xi=sub_x.get(timeout=0.1)
-                print("Coo received",i+1,"xi") 
+                xi=sub_x.get(timeout=0)
+                print("Coo received",len(drifts),"xi") 
                 drifts.append(xi)
             except TimeoutError:
-                print('Lost worker/workers')
-                break
+                continue
         print("Num of workers",len(drifts))
         return drifts
 
@@ -97,7 +95,7 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
         print("Coo started ...")
         client= get_client()
         for i in range(len(total_workers)-1):
-            workers.append(client.submit(worker_f,i,clf_results[i],n_minibatch,e,workers=total_workers[i+1]))
+            workers.append(client.submit(worker_f,i,clf_results[i],n_minibatch,e,len(total_workers),workers=total_workers[i+1]))
         
         time.sleep(5)
         flag=True #use this flag to finish future if chunks are out
@@ -163,7 +161,7 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
                 sub_incr.buffer.clear() #clear the buffered messages from previous th
                 print("Coo Sended endofSub... num_workers",k)
                 workers_status=[w.status for w in workers]
-                # k=workers_status.count('pending') 
+                k=workers_status.count('pending') 
                 fis=get_fi(k) #get F(Xi)'s from workers
                 
                 if len(fis)==0 and len(list(sub_f.buffer))!=0: 
@@ -183,10 +181,12 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
             #rounds ended...
             
             t4=time.time()
-            pub_endr.put(0) #let workers know that rounds ended 
-            
+            #pub_endr.put(0) #let workers know that rounds ended 
+            pub_th.put('End')
+
             print("Coo Sended endofround... num_workers",k)
-            drifts=get_xi(len(fis)) #get local drifts (Xi's)
+            k=workers_status.count('pending') 
+            drifts=get_xi(k) #get local drifts (Xi's)
             print("len of drifts",len(drifts))
             print("Coo Received xi's workers=",k)
             if len(drifts)==0 and len(list(sub_x.buffer))!=0: 
