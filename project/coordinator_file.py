@@ -1,6 +1,7 @@
 from dask.distributed import Pub, Sub, TimeoutError
 from dask.distributed import get_worker,wait
 import numpy as np
+import pandas as pd
 import time
 from worker_file import worker_f 
 from dask.distributed import get_client
@@ -70,8 +71,14 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
     
 
     #____________________________Start coordinator_________________________________
-    E=None
     
+    
+    
+    E=None
+    start_time=0
+    wait_time=0
+    process_time_round=0
+    process_time_sub=0
     th=0
     fis=0
     drifts=0
@@ -94,13 +101,14 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
         
         time.sleep(5)
         flag=True #use this flag to finish future if chunks are out
-        start_time=time.time()
+        total_run_time=time.time()
+        n_subs=0
         while flag==True:
-            n_subs=0
             workers_status=[w.status for w in workers]
             k=workers_status.count('pending')
+            t1=time.time()
             print("NUMBER OF WORKERS...",k)
-            if E is None: #if E=0 we need to update E
+            if E is None: #if E=0 we need to update E  
                 pub_init.put(None)
                 print("Warmup...Coo Sended E=0...") 
                 drifts=get_xi(k) #get local drifts (Xi's)
@@ -116,14 +124,17 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
                 pub_init.put(E)
                 print("Coo Sended E")
             
+            start_time+=time.time()-t1
 
+            t2=time.time()
             y=k*f([[0],0],E,e)
             barrier=e_y*k*f([[0],0],E,e)
             
-
             #start of the round...
+            wait_time+=time.time()-t2
             print("START ROUND:",n_rounds," workers ",k)
-            while y<=barrier: 
+            while y<=barrier:
+                t2=time.time() 
                 th=-y/(2*k)
 
                 pub_th.put(th) #send theta
@@ -146,6 +157,8 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
                     c=c+incr
                     #subrounds ended...
                 pub_endsub.put(0) #let workers know that subrounds ended
+                wait_time+=time.time()-t2
+                t3=time.time()
 
                 sub_incr.buffer.clear() #clear the buffered messages from previous th
                 print("Coo Sended endofSub... num_workers",k)
@@ -162,12 +175,14 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
                 print("Coo Received fi's workers=",k)
                 y=add_f(fis)
                 print("y",y)
+                process_time_sub+=time.time()-t3
                 if flag==False: #if false chunks are out end future
                     print("Coo Sended endofSub..")
                     break
                 
             #rounds ended...
             
+            t4=time.time()
             pub_endr.put(0) #let workers know that rounds ended 
             
             print("Coo Sended endofround... num_workers",k)
@@ -177,6 +192,7 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
             if len(drifts)==0 and len(list(sub_x.buffer))!=0: 
                 drifts=get_xi(len(list(sub_x.buffer)))
             if len(drifts)==0:
+                process_time_round+=time.time()-t4
                 break
 
             sum_xi=add_x(drifts)
@@ -185,9 +201,10 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
             E=[e1,e2]
             print("E computed")
             n_rounds+=1
-            time_stamb=time.time()-start_time
+            time_stamb=time.time()-total_run_time
             t_l.append(time_stamb)
             pub_results.put([E,n_subs,k,time_stamb])
+            process_time_round+=time.time()-t4
             if flag==False:
                 break
         
@@ -202,6 +219,9 @@ def coordinator(loops,clf,e,n_minibatch,total_workers):
         pub_pass.put(msg)
         time.sleep(5)
     print("Coo ended...")
+    df=pd.read_csv('data.csv')
+    df = df.append({'n_workers':int(len(total_workers)-1),'rounds':total_rounds[0],'subrounds':n_subs, 'start_time':start_time, 'wait_time':wait_time, 'process_time_sub':process_time_sub, 'process_time_round':process_time_round},ignore_index=True)
+    df.to_csv('data.csv',index=False)
     return total_time,total_rounds,time_l
 
 #----------------------------------------------------------------------------------------------

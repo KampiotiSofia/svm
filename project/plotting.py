@@ -144,7 +144,7 @@ def plot_workers(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/workers_test_mnist')
+    plt.savefig('B_Plots/workers_table')
     plt.show()
     
     return
@@ -188,7 +188,7 @@ def plot_speedup(l,centr_time,centr_acc):
     plt.title(title)
     plt.legend()
 
-    plt.savefig('B_Plots/speedup_test_mnist')
+    plt.savefig('B_Plots/speedup_table')
     plt.show()
     
     return
